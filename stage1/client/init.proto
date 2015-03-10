@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package client;
+
+service Kurma {
+	rpc Create (CreateRequest) returns (CreateResponse) {}
+	rpc UploadImage (stream ImageUpload) returns (None) {}
+	rpc Destroy (ContainerRequest) returns (None) {}
+	rpc List (None) returns (ListResponse) {}
+	rpc Get (ContainerRequest) returns (Container) {}
+}
+
+
+message CreateRequest {
+	string name = 1;
+	bytes manifest = 2;
+}
+
+message ImageUpload {
+	string image_upload_id = 1;
+	bytes bytes = 2;
+}
+
+message CreateResponse {
+	string image_upload_id = 1;
+	Container container = 2;
+}
+
+message ContainerRequest {
+	string uuid = 1;
+}
+
+message ListResponse {
+	repeated Container containers = 1;
+}
+
+message Container {
+	string uuid = 1;
+	bytes manifest = 2;
+
+	enum State {
+		NEW = 0;
+		STARTING = 1;
+		RUNNING = 2;
+		STOPPING = 3;
+		STOPPED = 4;
+		FINISHED = 5;
+	}
+	State state = 3;
+}
+
+message None {}
