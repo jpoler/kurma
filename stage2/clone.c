@@ -67,14 +67,14 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 	// --------------------------------------------------------------------
 	DEBUG("Resetting uid/gid\n");
 	if (setgid(getgid()) < 0 || setuid(getuid()) < 0)
-		error(1, 0, "Failed to drop privileges");
+		error(1, errno, "Failed to drop privileges");
 
 	// --------------------------------------------------------------------
 	// Step 6: Create the new namespaces.
 	// --------------------------------------------------------------------
 	flags = flags_for_clone(args);
 	if (unshare(flags) < 0)
-		error(1, 0, "Failed to unshare namespaces");
+		error(1, errno, "Failed to unshare namespaces");
 
 	// --------------------------------------------------------------------
 	// Step 7: Ensure the uid_map and gid_map files are written.
@@ -88,7 +88,7 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 
 		// by now, our uid/gid files are written, so escalate to root
 		if (setgid(0) < 0 || setgroups(0, NULL) < 0 || setuid(0) < 0)
-			error(1, 0, "Failed to get root within the container");
+			error(1, errno, "Failed to get root within the container");
 	}
 
 	// --------------------------------------------------------------------
@@ -133,12 +133,12 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 		if (args->group != NULL) {
 			int gid = gidforgroup(args->group);
 			if (gid != 0 && setgid(gid) < 0)
-			  error(1, 0, "Failed to get switch to the specified group");
+			  error(1, errno, "Failed to get switch to the specified group");
 		}
 		if (args->user != NULL) {
 			int uid = uidforuser(args->user);
 			if (uid != 0 && setuid(uid) < 0)
-			  error(1, 0, "Failed to get switch to the specified user");
+			  error(1, errno, "Failed to get switch to the specified user");
 		}
 
 		// Signal to the parent that we're ready to exec and we're done with
