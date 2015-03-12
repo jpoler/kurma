@@ -145,8 +145,8 @@ func pbContainer(c *container.Container) (*pb.Container, error) {
 		pbc.State = pb.Container_STOPPING
 	case container.STOPPED:
 		pbc.State = pb.Container_STOPPED
-	case container.FINISHED:
-		pbc.State = pb.Container_FINISHED
+	case container.EXITED:
+		pbc.State = pb.Container_EXITED
 	}
 
 	return pbc, nil

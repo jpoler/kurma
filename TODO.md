@@ -6,7 +6,7 @@
 - [ ] Implement ability to enter a container
 - [X] Instrument uid/gid handling for the stage3 exec
 - [ ] Implement PID 1 system bootstrapping
-- [ ] Implement "exited" handling for when the stage3 process exits
+- [X] Implement "exited" handling for when the stage3 process exits
 - [ ] Implement hook calls
 - [ ] Review Manager/Container lock handling
 - [ ] Implement specifying the container name in the CLI

@@ -44,7 +44,7 @@ message Container {
 		RUNNING = 2;
 		STOPPING = 3;
 		STOPPED = 4;
-		FINISHED = 5;
+		EXITED = 5;
 	}
 	State state = 3;
 }

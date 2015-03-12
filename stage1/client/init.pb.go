@@ -41,7 +41,7 @@ const (
 	Container_RUNNING  Container_State = 2
 	Container_STOPPING Container_State = 3
 	Container_STOPPED  Container_State = 4
-	Container_FINISHED Container_State = 5
+	Container_EXITED   Container_State = 5
 )
 
 var Container_State_name = map[int32]string{
@@ -50,7 +50,7 @@ var Container_State_name = map[int32]string{
 	2: "RUNNING",
 	3: "STOPPING",
 	4: "STOPPED",
-	5: "FINISHED",
+	5: "EXITED",
 }
 var Container_State_value = map[string]int32{
 	"NEW":      0,
@@ -58,7 +58,7 @@ var Container_State_value = map[string]int32{
 	"RUNNING":  2,
 	"STOPPING": 3,
 	"STOPPED":  4,
-	"FINISHED": 5,
+	"EXITED":   5,
 }
 
 func (x Container_State) String() string {

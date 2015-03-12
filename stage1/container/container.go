@@ -20,7 +20,7 @@ const (
 	RUNNING
 	STOPPING
 	STOPPED
-	FINISHED
+	EXITED
 )
 
 // Container represents the operation and management of an individual container

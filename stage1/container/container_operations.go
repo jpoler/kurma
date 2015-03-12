@@ -238,11 +238,28 @@ func (c *Container) launchStage2() error {
 
 	// Start the wait in a goroutine, it will handle reaping the process when it
 	// closes.
-	// FIXME handle teardown when this exits?
-	go cmd.Wait()
+	go c.watchContainer(cmd)
 
 	c.log.Debug("Done starting stage 2.")
 	return nil
+}
+
+// watchContainer runs in another goroutine to handle reaping the process when
+// the container shuts down, and also to handle transitioning to the exited
+// state if the process exits outside of a container shutdown.
+func (c *Container) watchContainer(cmd *exec.Cmd) {
+	// wait for the process to exit
+	cmd.Wait()
+
+	// if it exits, check if the container is shutting down
+	if c.isShuttingDown() {
+		return
+	}
+
+	// if it is still "running", move it to the exited state
+	c.mutex.Lock()
+	c.state = EXITED
+	c.mutex.Unlock()
 }
 
 // stoppingCgroups handles terminating all of the processes belonging to the
