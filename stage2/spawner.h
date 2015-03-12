@@ -65,6 +65,10 @@ typedef struct clone_destination_data {
 	// The directory for the container's filesystem
 	char *container_directory;
 
+	// The user and to run the stage3 process as
+	char *user;
+	char *group;
+
 	// True if this process should double fork in order to become a child of
 	// spanwer rather than the calling process.
 	bool detach;
@@ -87,6 +91,8 @@ void spawner_print_time(FILE *fd);
 void writemap(pid_t pid, char *type, char *map);
 void waitforstop(pid_t child);
 void waitforexit(pid_t child);
+int uidforuser(char *user);
+int gidforgroup(char *group);
 
 // -------
 // Logging

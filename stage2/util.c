@@ -9,6 +9,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <grp.h>
 
 #include "spawner.h"
 
@@ -91,6 +94,52 @@ void waitforexit(pid_t child) {
 		error(1, errno, "waitpid");
 	else if (WEXITSTATUS(status) != EXIT_SUCCESS)
 		exit(WEXITSTATUS(status));
+}
+
+int uidforuser(char *user) {
+	char *endptr;
+	long val;
+
+	// attempt to convert to integer first
+	errno = 0;
+	val = strtol(user, &endptr, 10);
+
+	// if the whole thing matched, return it
+	if (*endptr == '\0') {
+		return (int) val;
+	}
+
+	// look up the passwd entry
+	struct passwd *pwd;
+	pwd = getpwnam(user);
+	if (pwd != NULL)
+		return pwd->pw_uid;
+
+	// FIXME should it throw an error instead of silently using root?
+	return 0;
+}
+
+int gidforgroup(char *group) {
+	char *endptr;
+	long val;
+
+	// attempt to convert to integer first
+	errno = 0;
+	val = strtol(group, &endptr, 10);
+
+	// if the whole thing matched, return it
+	if (*endptr == '\0') {
+		return (int) val;
+	}
+
+	// look up the passwd entry
+	struct group *grp;
+	grp = getgrnam(group);
+	if (grp != NULL)
+		return grp->gr_gid;
+
+	// FIXME should it throw an error instead of silently using root?
+	return 0;
 }
 
 #endif

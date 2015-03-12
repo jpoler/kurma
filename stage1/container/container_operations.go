@@ -202,7 +202,13 @@ func (c *Container) launchStage2() error {
 		args = append(args, "--env", env)
 	}
 
-	// FIXME add option for the uid/gid to exec the command as
+	// Pass the user and group, if they're set
+	if c.image.App.User != "" {
+		args = append(args, "--user", c.image.App.User)
+	}
+	if c.image.App.Group != "" {
+		args = append(args, "--group", c.image.App.Group)
+	}
 
 	// Setup the command line to have it invoke the container's process.
 	args = append(args, "--")

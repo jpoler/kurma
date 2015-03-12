@@ -127,6 +127,20 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 			enterroot();
 		}
 
+		// --------------------------------------------------------------------
+		// Step 10: Drop privledges down to the specified user
+		// --------------------------------------------------------------------
+		if (args->group != NULL) {
+			int gid = gidforgroup(args->group);
+			if (gid != 0 && setgid(gid) < 0)
+			  error(1, 0, "Failed to get switch to the specified group");
+		}
+		if (args->user != NULL) {
+			int uid = uidforuser(args->user);
+			if (uid != 0 && setuid(uid) < 0)
+			  error(1, 0, "Failed to get switch to the specified user");
+		}
+
 		// Signal to the parent that we're ready to exec and we're done with
 		// them. This is needed because if the parent exits any sooner, the proc
 		// mount consistently fails.
@@ -136,12 +150,12 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 		}
 
 		// --------------------------------------------------------------------
-		// Step 10: Remove all existing environment variables.
+		// Step 11: Remove all existing environment variables.
 		// --------------------------------------------------------------------
 		environ = NULL;
 
 		// --------------------------------------------------------------------
-		// Step 11: Actually perform the exec at this point.
+		// Step 12: Actually perform the exec at this point.
 		// --------------------------------------------------------------------
 		DEBUG("Exec %s\n", args->command);
 		execvpe(args->command, args->args, args->environment);
@@ -149,7 +163,7 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 	}
 
 	// --------------------------------------------------------------------
-	// Step 12: End handling for the parent thread.
+	// Step 13: End handling for the parent thread.
 	// --------------------------------------------------------------------
 
 	// determine if we need to detach or wait for the process to finish
