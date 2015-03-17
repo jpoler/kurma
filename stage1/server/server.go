@@ -32,7 +32,6 @@ func New(options *Options) *Server {
 		log:     logray.New(),
 		options: options,
 	}
-	s.log.AddOutput("stdout://", logray.ALL)
 	return s
 }
 

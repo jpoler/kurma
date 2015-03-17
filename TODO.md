@@ -10,10 +10,11 @@
 - [ ] Implement hook calls
 - [ ] Review Manager/Container lock handling
 - [ ] Implement specifying the container name in the CLI
-- [ ] Implement appc isoaltors for namespaces
+- [ ] Implement appc isolators for namespaces
 - [ ] Implement appc isolators for capabilities
-- [ ] Implement appc isoaltors for cgroups
+- [ ] Implement appc isolators for cgroups
 - [ ] Implement remote image retrieval (with whitelist)
+- [ ] Look at a futex for protecting concurrent pivot_root calls.
 
 ### Exploritory
 
