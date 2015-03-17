@@ -135,7 +135,7 @@ func handleTypedErrors(cmd *cli.Cmd, err error) (code int) {
 	default:
 		// Unknown error received.
 		fmt.Fprintf(os.Stderr, terminal.Colorize(terminal.ColorError, ERROR_PREFIX+"%s\n"), aerr.Error())
-		fmt.Fprintf(os.Stdout, "Try `orchestrator-cli help` for more information.\n")
+		fmt.Fprintf(os.Stdout, "Try `kurma-cli help` for more information.\n")
 		return
 	}
 }
