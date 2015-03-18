@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/apcera/continuum/apc/utils"
 	"github.com/apcera/kurma/client/cli"
 	"github.com/apcera/util/tarhelper"
 
@@ -27,7 +26,7 @@ func parseFlags(cmd *cli.Cmd) {
 
 func cliCreate(cmd *cli.Cmd) error {
 	if len(cmd.Args) == 0 || len(cmd.Args) > 1 {
-		return utils.NewUsageError("Invalid command options specified.")
+		return fmt.Errorf("Invalid command options specified.")
 	}
 	return cmd.Run()
 }

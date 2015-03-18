@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/apcera/continuum/apc/utils"
 	"github.com/apcera/kurma/client/cli"
 	"github.com/apcera/termtables"
 	"github.com/appc/spec/schema"
@@ -25,7 +24,7 @@ func parseFlags(cmd *cli.Cmd) {
 
 func cliList(cmd *cli.Cmd) error {
 	if len(cmd.Args) > 0 {
-		return utils.NewUsageError("Invalid command options specified.")
+		return fmt.Errorf("Invalid command options specified.")
 	}
 	return cmd.Run()
 }

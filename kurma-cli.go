@@ -11,8 +11,8 @@ import (
 	"runtime"
 	"syscall"
 
-	"github.com/apcera/continuum/apc/utils/terminal"
 	"github.com/apcera/kurma/client/cli"
+	"github.com/apcera/util/terminal"
 
 	_ "github.com/apcera/kurma/client/cli/commands"
 )
