@@ -102,14 +102,20 @@ void createroot(char *src) {
 
 void enterroot(void) {
 	if (chdir(root) < 0)
-		error(1, 0, "Failed to chdir into the new root");
-	if (mkdir("dev/tmp", 0755) < 0)
-		error(1, 0, "Failed to create dev/tmp to place old filesystem at");
+		error(1, errno, "Failed to chdir into the new root");
+	// MAJOR FIXME: pivot_root won't work on rootfs, need to handle switching out the root
+	/*	if (mkdir("dev/tmp", 0755) < 0)
+		error(1, errno, "Failed to create dev/tmp to place old filesystem at");
 	if (syscall(__NR_pivot_root, ".", "dev/tmp") < 0)
-		error(1, 0, "Failed to pivot into new root filesystem");
+		error(1, errno, "Failed to pivot into new root filesystem");
 	if (chdir("/") < 0 || umount2("/dev/tmp", MNT_DETACH) < 0)
-		error(1, 0, "Failed to detach old root filesystem");
-	rmdir("/dev/tmp");
+		error(1, errno, "Failed to detach old root filesystem");
+		rmdir("/dev/tmp");*/
+	if (chroot(".") < 0)
+		error(1, errno, "Failed to chroot into new root filesystem");
+	if (chdir("/") < 0)
+		error(1, errno, "Failed to detach old root filesystem");
+
 }
 
 void mountproc(void) {

@@ -16,6 +16,7 @@ import (
 type Options struct {
 	ParentCgroupName   string
 	ContainerDirectory string
+	ContainerManager   *container.Manager
 }
 
 // Server represents the process that acts as a daemon to receive container
@@ -50,10 +51,15 @@ func (s *Server) Start() error {
 		pendingUploads: make(map[string]*pendingContainer),
 	}
 
-	// initialize the container manager
-	rpc.manager, err = s.initializeManager()
-	if err != nil {
-		return err
+	// check if we were given an existing manager
+	if s.options.ContainerManager != nil {
+		rpc.manager = s.options.ContainerManager
+	} else {
+		// initialize the container manager
+		rpc.manager, err = s.initializeManager()
+		if err != nil {
+			return err
+		}
 	}
 
 	// create the gRPC server and run

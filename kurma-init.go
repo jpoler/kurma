@@ -3,40 +3,30 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	"net/url"
+	"runtime"
 
-	"github.com/apcera/kurma/bootstrap"
-	"github.com/apcera/kurma/stage1/server"
+	kinit "github.com/apcera/kurma/init"
 	"github.com/apcera/logray"
 
 	_ "github.com/apcera/kurma/stage2"
 )
 
+const (
+	formatString = "%color:class%[%classfixed%]%color:default% %message%"
+)
+
 func main() {
-	logray.AddDefaultOutput("stdout://", logray.ALL)
-
-	// check if we're pid 1
-	if os.Getpid() == 1 {
-		if err := bootstrap.Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to bootstrap: %v\n", err)
-			os.Exit(1)
-			return
-		}
+	u := url.URL{
+		Scheme: "stdout",
+		RawQuery: url.Values(map[string][]string{
+			"format": []string{formatString},
+		}).Encode(),
 	}
+	logray.AddDefaultOutput(u.String(), logray.ALL)
 
-	directory, err := os.Getwd()
-	if err != nil {
+	if err := kinit.Run(); err != nil {
 		panic(err)
 	}
-
-	opts := &server.Options{
-		ParentCgroupName:   "kurma",
-		ContainerDirectory: directory,
-	}
-
-	s := server.New(opts)
-	if err := s.Start(); err != nil {
-		panic(err)
-	}
+	runtime.Goexit()
 }
