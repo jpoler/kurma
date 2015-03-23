@@ -17,11 +17,12 @@
 - [ ] Implement remote image retrieval (with whitelist)
 - [ ] Look at a futex for protecting concurrent pivot_root calls.
 - [ ] Implement configuring disks
-- [ ] Implement bootstrap containers
+- [X] Implement bootstrap containers
+- [ ] Add resource allocation
 
 ## Mid Term
 
-- [ ] Module scoping for each environment
+- [ ] Kernel module scoping for each environment
 - [ ] Configurable configuration datasources
 
 ### Exploritory

@@ -29,3 +29,41 @@ type kurmaNetworkInterface struct {
 type kurmaPathConfiguration struct {
 	Containers string `json:"containers,omitempty"`
 }
+
+func (cfg *kurmaConfig) mergeConfig(o *kurmaConfig) {
+	// FIXME datasources
+
+	if o.Hostname != "" {
+		cfg.Hostname = o.Hostname
+	}
+
+	if o.NetworkConfig != nil {
+		if len(o.NetworkConfig.DNS) > 0 {
+			cfg.NetworkConfig.DNS = o.NetworkConfig.DNS
+		}
+		if o.NetworkConfig.Gateway != "" {
+			cfg.NetworkConfig.Gateway = o.NetworkConfig.Gateway
+		}
+		if len(o.NetworkConfig.Interfaces) > 0 {
+			cfg.NetworkConfig.Interfaces = o.NetworkConfig.Interfaces
+		}
+	}
+
+	if len(o.Modules) > 0 {
+		cfg.Modules = append(cfg.Modules, o.Modules...)
+	}
+
+	if o.Paths != nil {
+		if o.Paths.Containers != "" {
+			cfg.Paths.Containers = o.Paths.Containers
+		}
+	}
+
+	if o.ParentCgroupName != "" {
+		cfg.ParentCgroupName = o.ParentCgroupName
+	}
+
+	if len(o.InitContainers) > 0 {
+		cfg.InitContainers = append(cfg.InitContainers, o.InitContainers...)
+	}
+}

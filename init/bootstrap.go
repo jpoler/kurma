@@ -3,6 +3,7 @@
 package init
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -18,6 +19,28 @@ import (
 	"github.com/apcera/util/proc"
 	"github.com/vishvananda/netlink"
 )
+
+// loadConfigurationFile loads a configuration file on disk and meges it with
+// the default configuration. This often acts as the per runtime environment
+// configuration.
+func (r *runner) loadConfigurationFile() error {
+	f, err := os.Open(configurationFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	defer f.Close()
+
+	var diskConfig *kurmaConfig
+	if err := json.NewDecoder(f).Decode(&diskConfig); err != nil {
+		return err
+	}
+
+	r.config.mergeConfig(diskConfig)
+	return nil
+}
 
 // createSystemMounts configured the default mounts for the host. Since kurma is
 // running as PID 1, there is no /etc/fstab, therefore it must mount them
