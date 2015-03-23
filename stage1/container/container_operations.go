@@ -88,13 +88,13 @@ func (c *Container) startingFilesystem() error {
 		return fmt.Errorf("failed to extract stage2 image filesystem: %v", err)
 	}
 
-	// put the hash on the container manifest
-	for i, app := range c.manifest.Apps {
-		if app.Image.Name == c.image.Name {
+	// put the hash on the pod manifest
+	for i, app := range c.pod.Apps {
+		if app.Image.Name.Equals(c.image.Name) {
 			if err := app.Image.ID.Set(fmt.Sprintf("sha512-%s", sr.Sha512())); err != nil {
 				return err
 			}
-			c.manifest.Apps[i] = app
+			c.pod.Apps[i] = app
 		}
 	}
 

@@ -30,7 +30,7 @@ type Container struct {
 	log     *logray.Logger
 
 	image            *schema.ImageManifest
-	manifest         *schema.ContainerRuntimeManifest
+	pod              *schema.PodManifest
 	initialImageFile io.ReadCloser
 
 	cgroup      *cgroups.Cgroup
@@ -42,10 +42,10 @@ type Container struct {
 	mutex        sync.Mutex
 }
 
-// Manifest returns the current container manifest for the App Container
+// Manifest returns the current pod manifest for the App Container
 // Specification.
-func (container *Container) Manifest() *schema.ContainerRuntimeManifest {
-	return container.manifest
+func (container *Container) Manifest() *schema.PodManifest {
+	return container.pod
 }
 
 // State returns the current operating state of the container.
@@ -111,8 +111,8 @@ func (container *Container) Stop() error {
 func (container *Container) ShortName() string {
 	if container == nil {
 		return ""
-	} else if len(container.manifest.UUID.String()) >= 8 {
-		return container.manifest.UUID.String()[0:8]
+	} else if len(container.pod.UUID.String()) >= 8 {
+		return container.pod.UUID.String()[0:8]
 	}
-	return container.manifest.UUID.String()
+	return container.pod.UUID.String()
 }

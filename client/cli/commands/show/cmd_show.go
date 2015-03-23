@@ -46,13 +46,13 @@ func show(cmd *cli.Cmd) error {
 	fmt.Printf("Container %s:\n\n", resp.Uuid)
 
 	// convert the manifest to the object
-	var container *schema.ContainerRuntimeManifest
-	if err := json.Unmarshal(resp.Manifest, &container); err != nil {
+	var pod *schema.PodManifest
+	if err := json.Unmarshal(resp.Manifest, &pod); err != nil {
 		return err
 	}
 
 	// convert back with pretty mode
-	b, err := json.MarshalIndent(container, "", "  ")
+	b, err := json.MarshalIndent(pod, "", "  ")
 	if err != nil {
 		return err
 	}

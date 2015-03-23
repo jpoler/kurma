@@ -48,12 +48,12 @@ func list(cmd *cli.Cmd) error {
 	table.AddHeaders("UUID", "Name", "State")
 
 	for _, container := range resp.Containers {
-		var manifest *schema.ContainerRuntimeManifest
-		if err := json.Unmarshal(container.Manifest, &manifest); err != nil {
+		var pod *schema.PodManifest
+		if err := json.Unmarshal(container.Manifest, &pod); err != nil {
 			return err
 		}
 		var appName string
-		for _, app := range manifest.Apps {
+		for _, app := range pod.Apps {
 			appName = app.Name.String()
 			break
 		}

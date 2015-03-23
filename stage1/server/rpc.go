@@ -126,7 +126,7 @@ func pbContainer(c *container.Container) (*pb.Container, error) {
 		Uuid: manifest.UUID.String(),
 	}
 
-	// marshal the container manifest
+	// marshal the pod manifest
 	b, err := manifest.MarshalJSON()
 	if err != nil {
 		return nil, err

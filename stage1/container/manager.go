@@ -92,8 +92,8 @@ func (manager *Manager) Create(
 		log:              manager.Log.Clone(),
 		initialImageFile: image,
 		image:            imageManifest,
-		manifest: &schema.ContainerRuntimeManifest{
-			ACKind:    "ContainerRuntimeManifest",
+		pod: &schema.PodManifest{
+			ACKind:    schema.PodManifestKind,
 			ACVersion: schema.AppContainerVersion,
 			UUID:      *cuuid,
 			Apps: schema.AppList([]schema.RuntimeApp{
@@ -101,7 +101,7 @@ func (manager *Manager) Create(
 					Name: types.ACName(name),
 					App:  imageManifest.App,
 					Image: schema.RuntimeImage{
-						Name:   imageManifest.Name,
+						Name:   &imageManifest.Name,
 						Labels: imageManifest.Labels,
 					},
 				},
@@ -113,7 +113,7 @@ func (manager *Manager) Create(
 
 	// add it to the manager's map
 	manager.containersLock.Lock()
-	manager.containers[container.manifest.UUID] = container
+	manager.containers[container.pod.UUID] = container
 	manager.containersLock.Unlock()
 
 	// begin the startup sequence
@@ -126,7 +126,7 @@ func (manager *Manager) Create(
 func (manager *Manager) remove(container *Container) {
 	manager.containersLock.Lock()
 	container.mutex.Lock()
-	delete(manager.containers, container.manifest.UUID)
+	delete(manager.containers, container.pod.UUID)
 	container.mutex.Unlock()
 	manager.containersLock.Unlock()
 }
