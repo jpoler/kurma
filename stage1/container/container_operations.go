@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/apcera/kurma/schema"
 	"github.com/apcera/util/envmap"
 	"github.com/apcera/util/hashutil"
 	"github.com/apcera/util/tarhelper"
@@ -200,6 +201,17 @@ func (c *Container) launchStage2() error {
 	// Handle any environment variables passed to the app
 	for _, env := range c.environment.Strings() {
 		args = append(args, "--env", env)
+	}
+
+	// Check for a privileged isolator
+	for _, iso := range c.image.App.Isolators {
+		if iso.Name == schema.PrivlegedName {
+			if piso, ok := iso.Value().(*schema.Privileged); ok {
+				if *piso {
+					args = append(args, "--privileged")
+				}
+			}
+		}
 	}
 
 	// Pass the user and group, if they're set

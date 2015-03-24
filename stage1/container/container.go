@@ -10,6 +10,8 @@ import (
 	"github.com/apcera/logray"
 	"github.com/apcera/util/envmap"
 	"github.com/appc/spec/schema"
+
+	_ "github.com/apcera/kurma/schema"
 )
 
 type ContainerState int

@@ -2,7 +2,7 @@
 
 ### Short Term
 
-- [ ] Address using switch\_root to re-enable pivot\_root for containers.
+- [X] Address using switch\_root to re-enable pivot\_root for containers.
 - [ ] Re-enable user namespace functionality
 - [ ] Implement ability to enter a container
 - [X] Instrument uid/gid handling for the stage3 exec
@@ -14,7 +14,7 @@
 - [ ] Implement appc isolators for namespaces
 - [ ] Implement appc isolators for capabilities
 - [ ] Implement appc isolators for cgroups
-- [ ] Implement remote image retrieval (with whitelist)
+- [X] Implement remote image retrieval
 - [ ] Look at a futex for protecting concurrent pivot_root calls.
 - [ ] Implement configuring disks
 - [X] Implement bootstrap containers
@@ -25,6 +25,7 @@
 - [ ] Kernel module scoping for each environment
 - [ ] Configurable configuration datasources
 - [ ] Add support for image retrieval through an http proxy
+- [ ] Add whitelist support for where to retrieve an image from
 
 ### Exploritory
 

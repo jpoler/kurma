@@ -53,6 +53,9 @@ typedef struct clone_destination_data {
 	// Setup a new user namespace on clone.
 	bool new_user_namespace;
 
+	// Specifies whether the container should be setup in a privileged mode.
+	bool privileged;
+
 	// Tells the spawner to chroot into the directory.
 	bool chroot;
 
