@@ -92,7 +92,7 @@ void cspawner(int argc, char **argv) {
 
 				{"detach", no_argument, &detach, 1},
 				{"chroot", no_argument, &chroot, 1},
-				{"privileged", no_argument, &privileged, 1},
+				{"host-privileged", no_argument, &privileged, 1},
 				{0, 0, 0, 0}
 			};
 		/* getopt_long stores the option index here. */

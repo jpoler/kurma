@@ -88,6 +88,26 @@ func configureInterface(link netlink.Link, netconf *kurmaNetworkInterface) error
 	return nil
 }
 
+// handleSIGCHLD is used to loop over and receive a SIGCHLD signal, which is
+// used to have the process reap any dead child processes.
+func (r *runner) handleSIGCHLD(ch chan os.Signal) {
+	for _ = range ch {
+		for {
+			// This will loop until we're done reaping children. It'll call wait4, but
+			// not block. If no processes are there to clean up, then it'll break the
+			// loop and wait for a new signal.
+			pid, err := syscall.Wait4(-1, nil, syscall.WNOHANG, nil)
+			if err != nil {
+				r.log.Errorf("Error in wait4: %v", err)
+				break
+			}
+			if pid <= 0 {
+				break
+			}
+		}
+	}
+}
+
 // findManifest retrieves the manifest from the provided reader and unmarshals
 // it.
 func findManifest(r io.Reader) (*schema.ImageManifest, error) {

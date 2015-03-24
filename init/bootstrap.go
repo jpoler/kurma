@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -317,6 +318,16 @@ func (r *runner) launchManager() error {
 	r.log.Trace("Container Manager has been initialized.")
 
 	os.Chdir("/var/kurma")
+	return nil
+}
+
+// startSignalHandling configures the necessary signal handlers for the init
+// process.
+func (r *runner) startSignalHandling() error {
+	// configure SIGCHLD
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, syscall.SIGCHLD)
+	go r.handleSIGCHLD(ch)
 	return nil
 }
 

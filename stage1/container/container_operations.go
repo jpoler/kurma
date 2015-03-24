@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/apcera/kurma/schema"
+	"github.com/apcera/kurma/stage2/client"
 	"github.com/apcera/util/envmap"
 	"github.com/apcera/util/hashutil"
 	"github.com/apcera/util/tarhelper"
@@ -192,104 +193,39 @@ func (c *Container) launchStage2() error {
 	}
 	defer stage2Stdout.Close()
 
-	// Open /dev/null which is used for stdin.
-	stage2Stdin, err := os.OpenFile("/dev/null", os.O_RDONLY, 0)
-	if err != nil {
-		return err
-	}
-	defer stage2Stdin.Close()
-
-	// Generate the uid and gid maps for user namespaces
-	// uidmap := fmt.Sprintf("0 %d %d\n", c.manager.namespaceUidOffset, c.manager.namespaceUidMaximum)
-	// gidmap := fmt.Sprintf("0 %d %d\n", c.manager.namespaceGidOffset, c.manager.namespaceGidMaximum)
-
-	// Initialize the options that will be passed to spawn the container.
-	args := []string{
-		// Default parameters to chroot, and the directory
-		"--chroot",
-		"--directory", c.stage3Path(),
-
-		// Baseline namespaces that are always used.
-		"--new-ipc-namespace",
-		"--new-uts-namespace",
-		"--new-mount-namespace",
-		// "--new-network-namespace",
-		"--new-pid-namespace",
-	}
-
-	// If user namespaces are to be used, then add the parameter to populate it
-	// and the uid and gid maps.
-	// if !c.manager.unittestingSkipUserNamespace {
-	// 	args = append(args, "--new-user-namespace")
-	// }
-	// args = append(args, "--uidmap", uidmap)
-	// args = append(args, "--gidmap", gidmap)
-
-	// Set the file descriptors it should use for stdin/out/err. Note this uses
-	// the ExtraFiles on the os/exec below. The file descriptor numbers start from
-	// after stderr (2). They are separate from the fd in this process.
-	args = append(args, "--stdinfd", "3")
-	args = append(args, "--stdoutfd", "4")
-	args = append(args, "--stderrfd", "4")
-
-	// Loop and append all the cgroups taskfiles the container should be in.
-	for _, f := range c.cgroup.TasksFiles() {
-		args = append(args, "--taskfile", f)
-	}
-
-	// Handle any environment variables passed to the app
-	for _, env := range c.environment.Strings() {
-		args = append(args, "--env", env)
+	// Initialize the stage2 launcher
+	launcher := &client.Launcher{
+		Directory:         c.stage3Path(),
+		Chroot:            true,
+		Detach:            true,
+		NewIPCNamespace:   true,
+		NewMountNamespace: true,
+		NewPIDNamespace:   true,
+		NewUTSNamespace:   true,
+		Environment:       c.environment.Strings(),
+		Taskfiles:         c.cgroup.TasksFiles(),
+		Stdout:            stage2Stdout,
+		Stderr:            stage2Stdout,
+		User:              c.image.App.User,
+		Group:             c.image.App.Group,
 	}
 
 	// Check for a privileged isolator
-	for _, iso := range c.image.App.Isolators {
-		if iso.Name == schema.PrivlegedName {
-			if piso, ok := iso.Value().(*schema.Privileged); ok {
-				if *piso {
-					args = append(args, "--privileged")
-				}
+	if iso := c.image.App.Isolators.GetByName(schema.HostPrivlegedName); iso != nil {
+		if piso, ok := iso.Value().(*schema.HostPrivileged); ok {
+			if *piso {
+				launcher.HostPrivileged = true
 			}
 		}
 	}
 
-	// Pass the user and group, if they're set
-	if c.image.App.User != "" {
-		args = append(args, "--user", c.image.App.User)
-	}
-	if c.image.App.Group != "" {
-		args = append(args, "--group", c.image.App.Group)
-	}
-
-	// Setup the command line to have it invoke the container's process.
-	args = append(args, "--")
-	args = append(args, c.image.App.Exec...)
-
-	// Create and initialize the spawnwer.
-	cmd := exec.Command(os.Args[0], args...)
-	cmd.ExtraFiles = []*os.File{
-		stage2Stdin,
-		stage2Stdout,
-	}
-	cmd.Stdin = stage2Stdin
-	cmd.Stdout = stage2Stdout
-	cmd.Stderr = stage2Stdout
-
-	// The spawner keys off this environment variable to know when it is supposed
-	// to run and take over execution.
-	cmd.Env = []string{
-		"SPAWNER_INTERCEPT=1",
-	}
-
-	// Start the container.
-	if err := cmd.Start(); err != nil {
+	if err := launcher.Run(c.image.App.Exec); err != nil {
 		return err
 	}
-	c.log.Tracef("Spawner PID: %d", cmd.Process.Pid)
 
 	// Start the wait in a goroutine, it will handle reaping the process when it
 	// closes.
-	go c.watchContainer(cmd)
+	// go c.watchContainer(cmd)
 
 	c.log.Debug("Done starting stage 2.")
 	return nil

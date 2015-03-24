@@ -7,8 +7,6 @@ import (
 
 	"github.com/apcera/kurma/stage1/server"
 	"github.com/apcera/logray"
-
-	_ "github.com/apcera/kurma/stage2"
 )
 
 func main() {

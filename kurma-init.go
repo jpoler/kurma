@@ -8,8 +8,6 @@ import (
 
 	kinit "github.com/apcera/kurma/init"
 	"github.com/apcera/logray"
-
-	_ "github.com/apcera/kurma/stage2"
 )
 
 const (
