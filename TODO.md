@@ -2,23 +2,23 @@
 
 ### Short Term
 
-- [X] Address using switch\_root to re-enable pivot\_root for containers.
 - [ ] Re-enable user namespace functionality
 - [ ] Implement ability to enter a container
-- [X] Instrument uid/gid handling for the stage3 exec
-- [X] Implement PID 1 system bootstrapping
-- [X] Implement "exited" handling for when the stage3 process exits
 - [ ] Implement hook calls
 - [ ] Review Manager/Container lock handling
 - [ ] Implement specifying the container name in the CLI
-- [ ] Implement appc isolators for namespaces
 - [ ] Implement appc isolators for capabilities
 - [ ] Implement appc isolators for cgroups
-- [X] Implement remote image retrieval
 - [ ] Look at a futex for protecting concurrent pivot_root calls.
 - [ ] Implement configuring disks
-- [X] Implement bootstrap containers
 - [ ] Add resource allocation
+- [X] Address using switch\_root to re-enable pivot\_root for containers.
+- [X] Instrument uid/gid handling for the stage3 exec
+- [X] Implement PID 1 system bootstrapping
+- [X] Implement "exited" handling for when the stage3 process exits
+- [X] Implement appc isolators for namespaces
+- [X] Implement remote image retrieval
+- [X] Implement bootstrap containers
 
 ## Mid Term
 
@@ -26,6 +26,8 @@
 - [ ] Configurable configuration datasources
 - [ ] Add support for image retrieval through an http proxy
 - [ ] Add whitelist support for where to retrieve an image from
+- [ ] Add baseline enforcement of certain kernel namespaces, like mount, ipc,
+  and pid.
 
 ### Exploritory
 

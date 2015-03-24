@@ -195,19 +195,36 @@ func (c *Container) launchStage2() error {
 
 	// Initialize the stage2 launcher
 	launcher := &client.Launcher{
-		Directory:         c.stage3Path(),
-		Chroot:            true,
-		Detach:            true,
-		NewIPCNamespace:   true,
-		NewMountNamespace: true,
-		NewPIDNamespace:   true,
-		NewUTSNamespace:   true,
-		Environment:       c.environment.Strings(),
-		Taskfiles:         c.cgroup.TasksFiles(),
-		Stdout:            stage2Stdout,
-		Stderr:            stage2Stdout,
-		User:              c.image.App.User,
-		Group:             c.image.App.Group,
+		Directory:   c.stage3Path(),
+		Chroot:      true,
+		Detach:      true,
+		Environment: c.environment.Strings(),
+		Taskfiles:   c.cgroup.TasksFiles(),
+		Stdout:      stage2Stdout,
+		Stderr:      stage2Stdout,
+		User:        c.image.App.User,
+		Group:       c.image.App.Group,
+	}
+
+	// Configure which linux namespaces to create
+	nsisolators := false
+	if iso := c.image.App.Isolators.GetByName(schema.LinuxNamespacesName); iso != nil {
+		if niso, ok := iso.Value().(*schema.LinuxNamespaces); ok {
+			launcher.NewIPCNamespace = niso.IPC()
+			launcher.NewMountNamespace = niso.Mount()
+			launcher.NewNetworkNamespace = niso.Net()
+			launcher.NewPIDNamespace = niso.PID()
+			launcher.NewUserNamespace = niso.User()
+			launcher.NewUTSNamespace = niso.UTS()
+			nsisolators = true
+		}
+	}
+	if !nsisolators {
+		// set some defaults if no namespace isolator was given
+		launcher.NewIPCNamespace = true
+		launcher.NewMountNamespace = true
+		launcher.NewPIDNamespace = true
+		launcher.NewUTSNamespace = true
 	}
 
 	// Check for a privileged isolator
