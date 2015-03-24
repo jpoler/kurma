@@ -4,21 +4,17 @@ package client;
 
 service Kurma {
 	rpc Create (CreateRequest) returns (CreateResponse) {}
-	rpc UploadImage (stream ImageUpload) returns (None) {}
+	rpc UploadImage (stream ByteChunk) returns (None) {}
 	rpc Destroy (ContainerRequest) returns (None) {}
 	rpc List (None) returns (ListResponse) {}
 	rpc Get (ContainerRequest) returns (Container) {}
 }
 
+// Request/Response specific objects
 
 message CreateRequest {
 	string name = 1;
 	bytes manifest = 2;
-}
-
-message ImageUpload {
-	string image_upload_id = 1;
-	bytes bytes = 2;
 }
 
 message CreateResponse {
@@ -33,6 +29,13 @@ message ContainerRequest {
 message ListResponse {
 	repeated Container containers = 1;
 }
+
+message ByteChunk {
+	string stream_id = 1;
+	bytes bytes = 2;
+}
+
+// More generic objects that are used in multiple locations.
 
 message Container {
 	string uuid = 1;

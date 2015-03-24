@@ -10,10 +10,10 @@ It is generated from these files:
 
 It has these top-level messages:
 	CreateRequest
-	ImageUpload
 	CreateResponse
 	ContainerRequest
 	ListResponse
+	ByteChunk
 	Container
 	None
 */
@@ -74,15 +74,6 @@ func (m *CreateRequest) Reset()         { *m = CreateRequest{} }
 func (m *CreateRequest) String() string { return proto.CompactTextString(m) }
 func (*CreateRequest) ProtoMessage()    {}
 
-type ImageUpload struct {
-	ImageUploadId string `protobuf:"bytes,1,opt,name=image_upload_id" json:"image_upload_id,omitempty"`
-	Bytes         []byte `protobuf:"bytes,2,opt,name=bytes,proto3" json:"bytes,omitempty"`
-}
-
-func (m *ImageUpload) Reset()         { *m = ImageUpload{} }
-func (m *ImageUpload) String() string { return proto.CompactTextString(m) }
-func (*ImageUpload) ProtoMessage()    {}
-
 type CreateResponse struct {
 	ImageUploadId string     `protobuf:"bytes,1,opt,name=image_upload_id" json:"image_upload_id,omitempty"`
 	Container     *Container `protobuf:"bytes,2,opt,name=container" json:"container,omitempty"`
@@ -121,6 +112,15 @@ func (m *ListResponse) GetContainers() []*Container {
 	}
 	return nil
 }
+
+type ByteChunk struct {
+	StreamId string `protobuf:"bytes,1,opt,name=stream_id" json:"stream_id,omitempty"`
+	Bytes    []byte `protobuf:"bytes,2,opt,name=bytes,proto3" json:"bytes,omitempty"`
+}
+
+func (m *ByteChunk) Reset()         { *m = ByteChunk{} }
+func (m *ByteChunk) String() string { return proto.CompactTextString(m) }
+func (*ByteChunk) ProtoMessage()    {}
 
 type Container struct {
 	Uuid     string          `protobuf:"bytes,1,opt,name=uuid" json:"uuid,omitempty"`
@@ -180,7 +180,7 @@ func (c *kurmaClient) UploadImage(ctx context.Context, opts ...grpc.CallOption) 
 }
 
 type Kurma_UploadImageClient interface {
-	Send(*ImageUpload) error
+	Send(*ByteChunk) error
 	CloseAndRecv() (*None, error)
 	grpc.ClientStream
 }
@@ -189,7 +189,7 @@ type kurmaUploadImageClient struct {
 	grpc.ClientStream
 }
 
-func (x *kurmaUploadImageClient) Send(m *ImageUpload) error {
+func (x *kurmaUploadImageClient) Send(m *ByteChunk) error {
 	return x.ClientStream.SendProto(m)
 }
 
@@ -263,7 +263,7 @@ func _Kurma_UploadImage_Handler(srv interface{}, stream grpc.ServerStream) error
 
 type Kurma_UploadImageServer interface {
 	SendAndClose(*None) error
-	Recv() (*ImageUpload, error)
+	Recv() (*ByteChunk, error)
 	grpc.ServerStream
 }
 
@@ -275,8 +275,8 @@ func (x *kurmaUploadImageServer) SendAndClose(m *None) error {
 	return x.ServerStream.SendProto(m)
 }
 
-func (x *kurmaUploadImageServer) Recv() (*ImageUpload, error) {
-	m := new(ImageUpload)
+func (x *kurmaUploadImageServer) Recv() (*ByteChunk, error) {
+	m := new(ByteChunk)
 	if err := x.ServerStream.RecvProto(m); err != nil {
 		return nil, err
 	}

@@ -70,7 +70,8 @@ func create(cmd *cli.Cmd) error {
 	if err != nil {
 		return err
 	}
-	w := &UploadStreamWriter{stream: stream, imageId: resp.ImageUploadId}
+
+	w := pb.NewByteStreamWriter(stream, resp.ImageUploadId)
 	if _, err := io.Copy(w, f); err != nil {
 		return fmt.Errorf("write error: %v", err)
 	}
@@ -80,19 +81,6 @@ func create(cmd *cli.Cmd) error {
 
 	// fmt.Printf("Launched container %s\n", resp.Uuid)
 	return nil
-}
-
-type UploadStreamWriter struct {
-	imageId string
-	stream  pb.Kurma_UploadImageClient
-}
-
-func (w *UploadStreamWriter) Write(p []byte) (int, error) {
-	packet := &pb.ImageUpload{
-		ImageUploadId: w.imageId,
-		Bytes:         p,
-	}
-	return len(p), w.stream.Send(packet)
 }
 
 func findManifest(r io.Reader) ([]byte, error) {

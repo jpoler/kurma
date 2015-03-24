@@ -62,10 +62,10 @@ func (s *rpcServer) UploadImage(stream pb.Kurma_UploadImageServer) error {
 		return err
 	}
 
-	pc := s.pendingUploads[packet.ImageUploadId]
-	delete(s.pendingUploads, packet.ImageUploadId)
+	pc := s.pendingUploads[packet.StreamId]
+	delete(s.pendingUploads, packet.StreamId)
 
-	r := newImageUploadReader(stream, packet)
+	r := pb.NewByteStreamReader(stream, packet)
 	s.log.Debug("Initializing container")
 	_, err = s.manager.Create(pc.name, pc.imageManifest, r)
 	if err != nil {
@@ -118,36 +118,4 @@ func (s *rpcServer) Get(ctx context.Context, in *pb.ContainerRequest) (*pb.Conta
 		return nil, fmt.Errorf("specified container not found")
 	}
 	return pbContainer(container)
-}
-
-func pbContainer(c *container.Container) (*pb.Container, error) {
-	manifest := c.Manifest()
-	pbc := &pb.Container{
-		Uuid: manifest.UUID.String(),
-	}
-
-	// marshal the pod manifest
-	b, err := manifest.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	pbc.Manifest = b
-
-	// map the container state
-	switch c.State() {
-	case container.NEW:
-		pbc.State = pb.Container_NEW
-	case container.STARTING:
-		pbc.State = pb.Container_STARTING
-	case container.RUNNING:
-		pbc.State = pb.Container_RUNNING
-	case container.STOPPING:
-		pbc.State = pb.Container_STOPPING
-	case container.STOPPED:
-		pbc.State = pb.Container_STOPPED
-	case container.EXITED:
-		pbc.State = pb.Container_EXITED
-	}
-
-	return pbc, nil
 }
