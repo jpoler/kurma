@@ -30,7 +30,7 @@ func cliList(cmd *cli.Cmd) error {
 }
 
 func list(cmd *cli.Cmd) error {
-	conn, err := grpc.Dial("localhost:12311")
+	conn, err := grpc.Dial("127.0.0.1:12311")
 	if err != nil {
 		return err
 	}
