@@ -24,6 +24,7 @@
 
 - [ ] Kernel module scoping for each environment
 - [ ] Configurable configuration datasources
+- [ ] Add support for image retrieval through an http proxy
 
 ### Exploritory
 

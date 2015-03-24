@@ -241,6 +241,24 @@ func (r *runner) configureNetwork() error {
 		r.log.Infof("Configured gatway to %s", r.config.NetworkConfig.Gateway)
 	}
 
+	// configure DNS
+	if len(r.config.NetworkConfig.DNS) > 0 {
+		// write the resolv.conf
+		if err := os.RemoveAll("/etc/resolv.conf"); err != nil {
+			return err
+		}
+		f, err := os.OpenFile("/etc/resolv.conf", os.O_CREATE, os.FileMode(0644))
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		for _, ns := range r.config.NetworkConfig.DNS {
+			if _, err := fmt.Fprintf(f, "nameserver %s\n", ns); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 

@@ -18,8 +18,8 @@ var (
 		(*runner).createDirectories,
 		(*runner).readonly,
 		(*runner).launchManager,
-		(*runner).startInitContainers,
 		(*runner).startServer,
+		(*runner).startInitContainers,
 	}
 )
 

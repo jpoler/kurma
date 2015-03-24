@@ -30,6 +30,7 @@ func handleMount(source, location, fstype, data string) error {
 // necessary.
 func configureInterface(link netlink.Link, netconf *kurmaNetworkInterface) error {
 	linkName := link.Attrs().Name
+	addressConfigured := true
 
 	// FIXME DHCP
 	// configure using DHCP
@@ -41,6 +42,7 @@ func configureInterface(link netlink.Link, netconf *kurmaNetworkInterface) error
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to configure %s with DHCP: %v", linkName, err)
 		}
+		addressConfigured = true
 	}
 
 	// single address
@@ -53,6 +55,7 @@ func configureInterface(link netlink.Link, netconf *kurmaNetworkInterface) error
 			return fmt.Errorf("failed to configure address %q on %s: %v",
 				netconf.Address, linkName, err)
 		}
+		addressConfigured = true
 	}
 
 	// list of addresses
@@ -65,6 +68,11 @@ func configureInterface(link netlink.Link, netconf *kurmaNetworkInterface) error
 			return fmt.Errorf("failed to configure address %q on %s: %v",
 				address, linkName, err)
 		}
+		addressConfigured = true
+	}
+
+	if !addressConfigured {
+		return fmt.Errorf("no address configured to %s: unable to set link up", linkName)
 	}
 
 	if netconf.MTU > 0 {
