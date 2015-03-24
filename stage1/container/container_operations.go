@@ -4,6 +4,7 @@ package container
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,6 +23,7 @@ var (
 	containerStartup = []func(*Container) error{
 		(*Container).startingBaseDirectories,
 		(*Container).startingFilesystem,
+		(*Container).startingNetworking,
 		(*Container).startingEnvironment,
 		(*Container).startingCgroups,
 		(*Container).launchStage2,
@@ -100,6 +102,43 @@ func (c *Container) startingFilesystem() error {
 	}
 
 	c.log.Debug("Done up stage2 filesystem")
+	return nil
+}
+
+// startingNetworking handles configuring parts of the networking for the
+// container, such as configuring its resolv.conf
+func (c *Container) startingNetworking() error {
+	c.log.Debug("Configuring network for container")
+
+	etcPath, err := c.ensureContainerPathExists("etc")
+	if err != nil {
+		return err
+	}
+	resolvPath := filepath.Join(etcPath, "resolv.conf")
+
+	if _, err := os.Lstat(resolvPath); err == nil {
+		if err := os.Remove(resolvPath); err != nil {
+			return err
+		}
+	}
+
+	hf, err := os.Open("/etc/resolv.conf")
+	if err != nil {
+		return err
+	}
+	defer hf.Close()
+
+	cf, err := os.Create(resolvPath)
+	if err != nil {
+		return err
+	}
+	defer cf.Close()
+
+	if _, err := io.Copy(cf, hf); err != nil {
+		return err
+	}
+
+	c.log.Debug("Done configuring networking")
 	return nil
 }
 
