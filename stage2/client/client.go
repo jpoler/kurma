@@ -176,6 +176,9 @@ func (l *Launcher) Run(cmdargs []string) error {
 		f()
 	}
 
+	// Wait for the command to ensure the process is reaped when its done.
+	go cmd.Wait()
+
 	// FIXME return process state?
 	return nil
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -240,20 +239,42 @@ func (c *Container) launchStage2() error {
 		return err
 	}
 
-	// Start the wait in a goroutine, it will handle reaping the process when it
-	// closes.
-	// go c.watchContainer(cmd)
+	// Start a goroutine to handle transitioning to the exited state when all
+	// processes die.
+	go c.watchContainer()
 
 	c.log.Debug("Done starting stage 2.")
 	return nil
 }
 
-// watchContainer runs in another goroutine to handle reaping the process when
-// the container shuts down, and also to handle transitioning to the exited
-// state if the process exits outside of a container shutdown.
-func (c *Container) watchContainer(cmd *exec.Cmd) {
-	// wait for the process to exit
-	cmd.Wait()
+// watchContainer runs in another goroutine to handle transitioning to the
+// exited state if all the processes exit inside the container.
+func (c *Container) watchContainer() {
+	// initially wait a few seconds on the evaluation to ensure we don't get a
+	// race on container startup.
+
+	// loop until there are no more processes inside the cgroup
+	for {
+		time.Sleep(time.Second * 5)
+
+		if c.isShuttingDown() {
+			return
+		}
+		if destroyed, err := c.cgroup.Destroyed(); destroyed || err != nil {
+			break
+		}
+
+		tasks, err := c.cgroup.Tasks()
+		if err != nil {
+			c.log.Warnf("Failed to read container tasks: %v", err)
+			break
+		}
+
+		// no tasks left
+		if len(tasks) == 0 {
+			break
+		}
+	}
 
 	// if it exits, check if the container is shutting down
 	if c.isShuttingDown() {
@@ -261,6 +282,7 @@ func (c *Container) watchContainer(cmd *exec.Cmd) {
 	}
 
 	// if it is still "running", move it to the exited state
+	c.log.Info("No processes remaining, transitioning to the EXITED state")
 	c.mutex.Lock()
 	c.state = EXITED
 	c.mutex.Unlock()
