@@ -13,26 +13,30 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <limits.h>
-#include <poll.h>
-#include <stdlib.h>
-#include <termios.h>
-#include <unistd.h>
 
 #include <sys/ioctl.h>
 
 #include "spawner.h"
 
-static struct termios saved;
-
 int getconsole(void) {
   int master;
 
   if ((master = posix_openpt(O_RDWR | O_NOCTTY)) < 0)
-    error(1, 0, "Failed to allocate a console pseudo-terminal");
+    error(1, errno, "Failed to allocate a console pseudo-terminal");
   grantpt(master);
   unlockpt(master);
   return master;
+}
+
+void setconsole(char *name) {
+	int console;
+
+	if (setsid() < 0)
+		error(1, errno, "Failed to create new session");
+	if ((console = open(name, O_RDWR)) < 0)
+		error(1, errno, "Failed to open console in container");
+	if (ioctl(console, TIOCSCTTY, NULL) < 0)
+		error(1, errno, "Failed set controlling terminal");
 }
 
 #endif

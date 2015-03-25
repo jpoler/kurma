@@ -139,6 +139,8 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 			DEBUG("Chrooting into filesystem\n");
 			enterroot(args->privileged);
 		}
+		if (args->detach)
+			setconsole("/dev/console");
 
 		// --------------------------------------------------------------------
 		// Step 11: Drop privledges down to the specified user

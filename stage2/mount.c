@@ -65,11 +65,12 @@ void createroot(char *src, bool privileged) {
 		if (mount("devtmpfs", "dev", "devtmpfs", 0, "") < 0)
 			error(1, errno, "Failed to mount /dev devtmpfs in new root filesystem");
 	} else {
-		if (mount("tmpfs", "dev", "tmpfs", 0, "mode=0755") < 0)
+		if (mount("tmpfs", "dev", "tmpfs", MS_NOEXEC | MS_STRICTATIME, "mode=0755") < 0)
 			error(1, errno, "Failed to mount /dev tmpfs in new root filesystem");
 
 		// Populate /dev within the container
 		bindnode("/dev/full", "dev/full");
+		bindnode("/dev/fuse", "dev/fuse");
 		bindnode("/dev/null", "dev/null");
 		bindnode("/dev/random", "dev/random");
 		bindnode("/dev/tty", "dev/tty");
@@ -86,13 +87,16 @@ void createroot(char *src, bool privileged) {
 		res = symlink("fd/2", "dev/stderr");
 	}
 
-	// setup /dev/pts and /dev/shm
+	// setup /dev/mqueue, /dev/pts and /dev/shm
+	mkdir("dev/mqueue", 0755);
+	if (mount("mqueue", "dev/mqueue", "mqueue", MS_NOEXEC | MS_NOSUID | MS_NODEV, NULL) < 0)
+		error(1, errno, "Failed to mount /dev/mqueue in new root filesystem");
 	mkdir("dev/pts", 0755);
-	if (mount("devpts", "dev/pts", "devpts", 0, "newinstance,ptmxmode=0666") < 0)
+	if (mount("devpts", "dev/pts", "devpts", MS_NOEXEC | MS_NOSUID, "newinstance,ptmxmode=0666") < 0)
 		error(1, errno, "Failed to mount /dev/pts in new root filesystem");
 	mkdir("dev/shm", 0755);
-	if (mount("tmpfs", "dev/shm", "tmpfs", 0, "mode=1777,size=65536k") < 0)
-		error(1, errno, "Failed to mount /dev/pts in new root filesystem");
+	if (mount("tmpfs", "dev/shm", "tmpfs", MS_NOEXEC | MS_NOSUID | MS_NODEV, "mode=1777,size=65536k") < 0)
+		error(1, errno, "Failed to mount /dev/shm in new root filesystem");
 
 	// Setup /tmp within the container
 	mkdir("tmp", 0777);
@@ -127,10 +131,13 @@ void mountproc(void) {
 
 	mask = umask(0);
 	mkdir("proc" , 0755);
+	mkdir("sys", 0755);
 	umask(mask);
 
-	if (mount("proc", "proc", "proc", 0, NULL) < 0)
+	if (mount("proc", "proc", "proc", MS_NOSUID | MS_NOEXEC | MS_NODEV, NULL) < 0)
 		error(1, errno, "Failed to mount /proc in new root filesystem: %s", strerror(errno));
+	if (mount("sysfs", "sys", "sysfs", MS_NOEXEC | MS_NOSUID | MS_NODEV | MS_RDONLY, NULL) < 0)
+		error(1, errno, "Failed to mount /sys in new root filesystem");
 }
 
 #endif
