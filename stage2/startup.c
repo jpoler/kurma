@@ -76,6 +76,13 @@ void cspawner(int argc, char **argv) {
 				{"stdoutfd", required_argument, 0, 'd'},
 				{"stderrfd", required_argument, 0, 'e'},
 
+				{"ipc-namespace", required_argument, 0, 'f'},
+				{"mount-namespace", required_argument, 0, 'g'},
+				{"network-namespace", required_argument, 0, 'h'},
+				{"pid-namespace", required_argument, 0, 'i'},
+				{"uts-namespace", required_argument, 0, 'j'},
+				{"user-namespace", required_argument, 0, 'k'},
+
 				{"new-ipc-namespace", no_argument, &new_ipc_namespace, 1},
 				{"new-mount-namespace", no_argument, &new_mount_namespace, 1},
 				{"new-network-namespace", no_argument, &new_network_namespace, 1},
@@ -83,12 +90,12 @@ void cspawner(int argc, char **argv) {
 				{"new-uts-namespace", no_argument, &new_uts_namespace, 1},
 				{"new-user-namespace", no_argument, &new_user_namespace, 1},
 
-				{"uidmap", required_argument, 0, 'k'},
-				{"gidmap", required_argument, 0, 'l'},
+				{"uidmap", required_argument, 0, 'l'},
+				{"gidmap", required_argument, 0, 'm'},
 
-				{"directory", required_argument, 0, 'm'},
-				{"user", required_argument, 0, 'n'},
-				{"group", required_argument, 0, 'o'},
+				{"directory", required_argument, 0, 'n'},
+				{"user", required_argument, 0, 'o'},
+				{"group", required_argument, 0, 'p'},
 
 				{"detach", no_argument, &detach, 1},
 				{"chroot", no_argument, &chroot, 1},
@@ -142,24 +149,44 @@ void cspawner(int argc, char **argv) {
 			args->stderrfd = atoi(optarg);
 			break;
 
-			// maps
+			// namespaces to join
+		case 'f':
+			args->ipcnamespace = optarg;
+			break;
+		case 'g':
+			args->mountnamespace = optarg;
+			break;
+		case 'h':
+			args->networknamespace = optarg;
+			break;
+		case 'i':
+			args->pidnamespace = optarg;
+			break;
+		case 'j':
+			args->utsnamespace = optarg;
+			break;
 		case 'k':
+			args->usernamespace = optarg;
+			break;
+
+			// maps
+		case 'l':
 			args->uidmap = optarg;
 			break;
-		case 'l':
+		case 'm':
 			args->gidmap = optarg;
 			break;
 
 			// directory
-		case 'm':
+		case 'n':
 			args->container_directory = optarg;
 			break;
 			// user
-		case 'n':
+		case 'o':
 			args->user = optarg;
 			break;
 			// group
-		case 'o':
+		case 'p':
 			args->group = optarg;
 			break;
 

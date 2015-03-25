@@ -8,6 +8,7 @@ service Kurma {
 	rpc Destroy (ContainerRequest) returns (None) {}
 	rpc List (None) returns (ListResponse) {}
 	rpc Get (ContainerRequest) returns (Container) {}
+	rpc Enter(stream ByteChunk) returns (stream ByteChunk) {}
 }
 
 // Request/Response specific objects

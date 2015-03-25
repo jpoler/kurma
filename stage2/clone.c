@@ -63,21 +63,34 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 	joincgroups(args->tasksfiles);
 
 	// --------------------------------------------------------------------
-	// Step 5: Drop privledges to just the current user.
+	// Step 5: Join all namespaces requested by the user.
+	// --------------------------------------------------------------------
+	DEBUG("Joining namespaces, if any are set.\n");
+	// Note the order of joining namespaces is significant. Mount must be last,
+	// else /proc will change and it won't find the processes.
+	joinnamespace(args->usernamespace);
+	joinnamespace(args->ipcnamespace);
+	joinnamespace(args->utsnamespace);
+	joinnamespace(args->networknamespace);
+	joinnamespace(args->pidnamespace);
+	joinnamespace(args->mountnamespace);
+
+	// --------------------------------------------------------------------
+	// Step 6: Drop privledges to just the current user.
 	// --------------------------------------------------------------------
 	DEBUG("Resetting uid/gid\n");
 	if (setgid(getgid()) < 0 || setuid(getuid()) < 0)
 		error(1, errno, "Failed to drop privileges");
 
 	// --------------------------------------------------------------------
-	// Step 6: Create the new namespaces.
+	// Step 7: Create the new namespaces.
 	// --------------------------------------------------------------------
 	flags = flags_for_clone(args);
 	if (unshare(flags) < 0)
 		error(1, errno, "Failed to unshare namespaces");
 
 	// --------------------------------------------------------------------
-	// Step 7: Ensure the uid_map and gid_map files are written.
+	// Step 8: Ensure the uid_map and gid_map files are written.
 	// --------------------------------------------------------------------
 	if (args->new_user_namespace) {
 		DEBUG("Waiting for uidmap/gidmap\n");
@@ -92,7 +105,7 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 	}
 
 	// --------------------------------------------------------------------
-	// Step 8: Setup the root filesystem.
+	// Step 9: Setup the root filesystem.
 	// --------------------------------------------------------------------
 	if (args->container_directory != NULL) {
 		DEBUG("Creating root filesystem\n");
@@ -100,7 +113,7 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 	}
 
 	// --------------------------------------------------------------------
-	// Step 9: Prepare for the final fork.
+	// Step 10: Prepare for the final fork.
 	// --------------------------------------------------------------------
 
 	// Only create the pipe if we're going to detach. The flags are used to
@@ -128,7 +141,7 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 		}
 
 		// --------------------------------------------------------------------
-		// Step 10: Drop privledges down to the specified user
+		// Step 11: Drop privledges down to the specified user
 		// --------------------------------------------------------------------
 		if (args->group != NULL) {
 			int gid = gidforgroup(args->group);
@@ -150,12 +163,12 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 		}
 
 		// --------------------------------------------------------------------
-		// Step 11: Remove all existing environment variables.
+		// Step 12: Remove all existing environment variables.
 		// --------------------------------------------------------------------
 		environ = NULL;
 
 		// --------------------------------------------------------------------
-		// Step 12: Actually perform the exec at this point.
+		// Step 13: Actually perform the exec at this point.
 		// --------------------------------------------------------------------
 		DEBUG("Exec %s\n", args->command);
 		execvpe(args->command, args->args, args->environment);
@@ -163,7 +176,7 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 	}
 
 	// --------------------------------------------------------------------
-	// Step 13: End handling for the parent thread.
+	// Step 14: End handling for the parent thread.
 	// --------------------------------------------------------------------
 
 	// determine if we need to detach or wait for the process to finish

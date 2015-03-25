@@ -18,6 +18,13 @@ type Launcher struct {
 	User      string
 	Group     string
 
+	IPCNamespace     int
+	MountNamespace   int
+	NetworkNamespace int
+	PIDNamespace     int
+	UTSNamespace     int
+	UserNamespace    int
+
 	NewIPCNamespace     bool
 	NewMountNamespace   bool
 	NewNetworkNamespace bool
@@ -37,6 +44,17 @@ type Launcher struct {
 	Stderr *os.File
 
 	postStart []func()
+}
+
+// SetNS will ensure the namespaces from the specified process will be applied
+// to the launcher.
+func (l *Launcher) SetNS(pid int) {
+	l.IPCNamespace = pid
+	l.MountNamespace = pid
+	l.NetworkNamespace = pid
+	l.PIDNamespace = pid
+	l.UTSNamespace = pid
+	l.UserNamespace = pid
 }
 
 // generateArgs is used to generate the necessary command line arguments for the
@@ -66,6 +84,28 @@ func (l *Launcher) generateArgs(cmdargs []string) ([]string, []*os.File) {
 	if l.Group != "" {
 		args = append(args, "--group", l.Group)
 	}
+
+	// Add handlers for existing namespaces
+	if l.IPCNamespace > 0 {
+		args = append(args, "--ipc-namespace", nsPath(l.IPCNamespace, "ipc"))
+	}
+	if l.MountNamespace > 0 {
+		args = append(args, "--mount-namespace", nsPath(l.MountNamespace, "mnt"))
+	}
+	if l.NetworkNamespace > 0 {
+		args = append(args, "--network-namespace", nsPath(l.NetworkNamespace, "net"))
+	}
+	if l.PIDNamespace > 0 {
+		args = append(args, "--pid-namespace", nsPath(l.PIDNamespace, "pid"))
+	}
+	if l.UTSNamespace > 0 {
+		args = append(args, "--uts-namespace", nsPath(l.UTSNamespace, "uts"))
+	}
+	// FIXME this needs testing when re-enabling username spaces... without
+	// changing user namespaces, setns on it fails.
+	// if l.UserNamespace > 0 {
+	// 	args = append(args, "--user-namespace", nsPath(l.UserNamespace, "user"))
+	// }
 
 	// Add applicalble new namespace flags
 	if l.NewIPCNamespace {
@@ -147,7 +187,7 @@ func (l *Launcher) generateArgs(cmdargs []string) ([]string, []*os.File) {
 
 // Run will launch the stage2 binary with the desired settings and execute the
 // specified command. It will return once the stage2 has been started.
-func (l *Launcher) Run(cmdargs []string) error {
+func (l *Launcher) Run(cmdargs ...string) (*os.Process, error) {
 	args, extraFiles := l.generateArgs(cmdargs)
 
 	// Create and initialize the spawnwer.
@@ -168,7 +208,7 @@ func (l *Launcher) Run(cmdargs []string) error {
 
 	// Start the container.
 	if err := cmd.Start(); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Run any postStart funcs, just to cleanup
@@ -177,8 +217,14 @@ func (l *Launcher) Run(cmdargs []string) error {
 	}
 
 	// Wait for the command to ensure the process is reaped when its done.
-	go cmd.Wait()
+	if l.Detach {
+		go cmd.Wait()
+	}
 
 	// FIXME return process state?
-	return nil
+	return cmd.Process, nil
+}
+
+func nsPath(pid int, kind string) string {
+	return fmt.Sprintf("/proc/%d/ns/%s", pid, kind)
 }

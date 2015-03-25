@@ -3,10 +3,14 @@
 package container
 
 import (
+	"fmt"
 	"io"
+	"os"
 	"sync"
 
 	"github.com/apcera/kurma/cgroups"
+	kschema "github.com/apcera/kurma/schema"
+	"github.com/apcera/kurma/stage2/client"
 	"github.com/apcera/logray"
 	"github.com/apcera/util/envmap"
 	"github.com/appc/spec/schema"
@@ -117,4 +121,42 @@ func (container *Container) ShortName() string {
 		return container.pod.UUID.String()[0:8]
 	}
 	return container.pod.UUID.String()
+}
+
+func (c *Container) Enter(stream *os.File) error {
+	launcher := &client.Launcher{
+		Environment: c.environment.Strings(),
+		Taskfiles:   c.cgroup.TasksFiles(),
+		Stdin:       stream,
+		Stdout:      stream,
+		Stderr:      stream,
+		User:        c.image.App.User,
+		Group:       c.image.App.Group,
+	}
+
+	// Check for a privileged isolator
+	if iso := c.image.App.Isolators.GetByName(kschema.HostPrivlegedName); iso != nil {
+		if piso, ok := iso.Value().(*kschema.HostPrivileged); ok {
+			if *piso {
+				launcher.HostPrivileged = true
+			}
+		}
+	}
+
+	// Get a process from the container and copy its namespaces
+	tasks, err := c.cgroup.Tasks()
+	if err != nil {
+		return err
+	}
+	if len(tasks) == 0 {
+		return fmt.Errorf("no processes are running inside the container")
+	}
+	launcher.SetNS(tasks[0])
+
+	p, err := launcher.Run("/bin/bash")
+	if err != nil {
+		return err
+	}
+	_, err = p.Wait()
+	return err
 }

@@ -235,7 +235,7 @@ func (c *Container) launchStage2() error {
 		}
 	}
 
-	if err := launcher.Run(c.image.App.Exec); err != nil {
+	if _, err := launcher.Run(c.image.App.Exec...); err != nil {
 		return err
 	}
 

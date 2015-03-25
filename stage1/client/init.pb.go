@@ -151,6 +151,7 @@ type KurmaClient interface {
 	Destroy(ctx context.Context, in *ContainerRequest, opts ...grpc.CallOption) (*None, error)
 	List(ctx context.Context, in *None, opts ...grpc.CallOption) (*ListResponse, error)
 	Get(ctx context.Context, in *ContainerRequest, opts ...grpc.CallOption) (*Container, error)
+	Enter(ctx context.Context, opts ...grpc.CallOption) (Kurma_EnterClient, error)
 }
 
 type kurmaClient struct {
@@ -231,6 +232,37 @@ func (c *kurmaClient) Get(ctx context.Context, in *ContainerRequest, opts ...grp
 	return out, nil
 }
 
+func (c *kurmaClient) Enter(ctx context.Context, opts ...grpc.CallOption) (Kurma_EnterClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_Kurma_serviceDesc.Streams[1], c.cc, "/client.Kurma/Enter", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &kurmaEnterClient{stream}
+	return x, nil
+}
+
+type Kurma_EnterClient interface {
+	Send(*ByteChunk) error
+	Recv() (*ByteChunk, error)
+	grpc.ClientStream
+}
+
+type kurmaEnterClient struct {
+	grpc.ClientStream
+}
+
+func (x *kurmaEnterClient) Send(m *ByteChunk) error {
+	return x.ClientStream.SendProto(m)
+}
+
+func (x *kurmaEnterClient) Recv() (*ByteChunk, error) {
+	m := new(ByteChunk)
+	if err := x.ClientStream.RecvProto(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Server API for Kurma service
 
 type KurmaServer interface {
@@ -239,6 +271,7 @@ type KurmaServer interface {
 	Destroy(context.Context, *ContainerRequest) (*None, error)
 	List(context.Context, *None) (*ListResponse, error)
 	Get(context.Context, *ContainerRequest) (*Container, error)
+	Enter(Kurma_EnterServer) error
 }
 
 func RegisterKurmaServer(s *grpc.Server, srv KurmaServer) {
@@ -319,6 +352,32 @@ func _Kurma_Get_Handler(srv interface{}, ctx context.Context, buf []byte) (proto
 	return out, nil
 }
 
+func _Kurma_Enter_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(KurmaServer).Enter(&kurmaEnterServer{stream})
+}
+
+type Kurma_EnterServer interface {
+	Send(*ByteChunk) error
+	Recv() (*ByteChunk, error)
+	grpc.ServerStream
+}
+
+type kurmaEnterServer struct {
+	grpc.ServerStream
+}
+
+func (x *kurmaEnterServer) Send(m *ByteChunk) error {
+	return x.ServerStream.SendProto(m)
+}
+
+func (x *kurmaEnterServer) Recv() (*ByteChunk, error) {
+	m := new(ByteChunk)
+	if err := x.ServerStream.RecvProto(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 var _Kurma_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "client.Kurma",
 	HandlerType: (*KurmaServer)(nil),
@@ -344,6 +403,12 @@ var _Kurma_serviceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "UploadImage",
 			Handler:       _Kurma_UploadImage_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "Enter",
+			Handler:       _Kurma_Enter_Handler,
+			ServerStreams: true,
 			ClientStreams: true,
 		},
 	},

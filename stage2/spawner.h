@@ -35,6 +35,24 @@ typedef struct clone_destination_data {
 	// The file descriptor that will be duplicated into the stderr position.
 	int stderrfd;
 
+	// The IPC namespace that should be joined after cloning.
+	char *ipcnamespace;
+
+	// The Mount namespace that should be joined after cloning.
+	char *mountnamespace;
+
+	// The network namespace that should be joined after cloning.
+	char *networknamespace;
+
+	// The pid namespace that should be joined after cloning.
+	char *pidnamespace;
+
+	// The UTS namespace that should be joined after cloning.
+	char *utsnamespace;
+
+	// The User namespace that should be joined after cloning.
+	char *usernamespace;
+
 	// Setup a new IPC namespace on clone.
 	bool new_ipc_namespace;
 
@@ -85,6 +103,7 @@ static void setup_container(clone_destination_data *args, pid_t child);
 void dup_filedescriptors(int stdinfd, int stdoutfd, int stderrfd);
 void closefds();
 void joincgroups(char *tasksfiles[]);
+void joinnamespace(char *filename);
 int flags_for_clone(clone_destination_data *args);
 
 // util.c

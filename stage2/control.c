@@ -8,6 +8,7 @@
 #define FILENAMESIZE 4096
 
 #include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <sched.h>
 #include <sysexits.h>
@@ -110,6 +111,21 @@ void joincgroups(char *tasksfiles[]) {
 	if (write(fd, pidstr, len) != len) { _exit(EX_OSERR); }
 	if (close(fd) == -1) { _exit(EX_OSERR); }
 	}
+}
+
+// Joins a given namespace if the string is not null.
+void joinnamespace(char *filename) {
+	int fd;
+
+	if (filename == NULL) { return; }
+
+	fd = open(filename, O_RDONLY);
+	if (fd == -1)
+		error(1, errno, "Failed to open");
+	if (setns(fd, 0) != 0)
+		error(1, errno, "Failed to setns");
+	if (close(fd) != 0)
+		error(1, errno, "Failed to close");
 }
 
 // Returns the flags that should be used for the outermost clone.
