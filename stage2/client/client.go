@@ -17,6 +17,8 @@ type Launcher struct {
 	Directory string
 	User      string
 	Group     string
+	Uidmap    string
+	Gidmap    string
 
 	IPCNamespace     int
 	MountNamespace   int
@@ -129,11 +131,10 @@ func (l *Launcher) generateArgs(cmdargs []string) ([]string, []*os.File) {
 
 	// If user namespaces are to be used, then add the parameter to populate it
 	// and the uid and gid maps.
-	// if !c.manager.unittestingSkipUserNamespace {
-	// 	args = append(args, "--new-user-namespace")
+	// if l.UserNamespace > 0 || l.NewUserNamespace {
+	// 	args = append(args, "--uidmap", l.Uidmap)
+	// 	args = append(args, "--gidmap", l.Gidmap)
 	// }
-	// args = append(args, "--uidmap", uidmap)
-	// args = append(args, "--gidmap", gidmap)
 
 	// Check for a privileged isolator
 	if l.HostPrivileged {
