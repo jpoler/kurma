@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/apcera/kurma/client/cli"
+	"github.com/nsf/termbox-go"
 
 	pb "github.com/apcera/kurma/stage1/client"
 	"golang.org/x/net/context"
@@ -29,6 +30,12 @@ func cliEnter(cmd *cli.Cmd) error {
 }
 
 func enter(cmd *cli.Cmd) error {
+	err := termbox.Init()
+	if err != nil {
+		return err
+	}
+	defer termbox.Close()
+
 	conn, err := grpc.Dial("127.0.0.1:12311")
 	if err != nil {
 		return err
