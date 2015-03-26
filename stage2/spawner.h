@@ -86,6 +86,9 @@ typedef struct clone_destination_data {
 	// The directory for the container's filesystem
 	char *container_directory;
 
+	// The directory where the container's filesystem should be bind mounted to
+	char *bind_directory;
+
 	// The user and to run the stage3 process as
 	char *user;
 	char *group;

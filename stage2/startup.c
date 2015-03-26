@@ -93,9 +93,10 @@ void cspawner(int argc, char **argv) {
 				{"uidmap", required_argument, 0, 'l'},
 				{"gidmap", required_argument, 0, 'm'},
 
-				{"directory", required_argument, 0, 'n'},
-				{"user", required_argument, 0, 'o'},
-				{"group", required_argument, 0, 'p'},
+				{"container-directory", required_argument, 0, 'n'},
+				{"bind-directory", required_argument, 0, 'o'},
+				{"user", required_argument, 0, 'p'},
+				{"group", required_argument, 0, 'q'},
 
 				{"detach", no_argument, &detach, 1},
 				{"chroot", no_argument, &chroot, 1},
@@ -181,12 +182,15 @@ void cspawner(int argc, char **argv) {
 		case 'n':
 			args->container_directory = optarg;
 			break;
-			// user
 		case 'o':
+			args->bind_directory = optarg;
+			break;
+			// user
+		case 'p':
 			args->user = optarg;
 			break;
 			// group
-		case 'p':
+		case 'q':
 			args->group = optarg;
 			break;
 

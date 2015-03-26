@@ -10,7 +10,8 @@ import (
 
 	"github.com/apcera/kurma/cgroups"
 	kschema "github.com/apcera/kurma/schema"
-	"github.com/apcera/kurma/stage2/client"
+	client2 "github.com/apcera/kurma/stage2/client"
+	client3 "github.com/apcera/kurma/stage3/client"
 	"github.com/apcera/logray"
 	"github.com/apcera/util/envmap"
 	"github.com/appc/spec/schema"
@@ -43,6 +44,7 @@ type Container struct {
 	directory   string
 	environment *envmap.EnvMap
 
+	initdClient  client3.Client
 	shuttingDown bool
 	state        ContainerState
 	mutex        sync.Mutex
@@ -127,7 +129,7 @@ func (container *Container) ShortName() string {
 // the container through the stage2 rather than through the initd so that it can
 // easily stream in and out.
 func (c *Container) Enter(stream *os.File) error {
-	launcher := &client.Launcher{
+	launcher := &client2.Launcher{
 		Environment: c.environment.Strings(),
 		Taskfiles:   c.cgroup.TasksFiles(),
 		Stdin:       stream,
@@ -163,4 +165,22 @@ func (c *Container) Enter(stream *os.File) error {
 	}
 	_, err = p.Wait()
 	return err
+}
+
+// getInitdClient is an accessor to get current initd client object. This should
+// be used instead of accessing it directly because it retrives it within a
+// mutex, and should then be set to a local variable. This is safest because on
+// teardown, the initdClient is nil'd out and may cause a panic if another
+// goroutine is still running and tries to use it.
+func (c *Container) getInitdClient() client3.Client {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.initdClient
+}
+
+// markFailed is used to transition the container to the exited state.
+func (c *Container) markExited() {
+	c.mutex.Lock()
+	c.state = EXITED
+	c.mutex.Unlock()
 }

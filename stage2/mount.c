@@ -33,7 +33,7 @@ char *tmpdir(void) {
 	return dir;
 }
 
-static void bindnode(char *src, char *dst) {
+void bindnode(char *src, char *dst) {
 	int fd;
 
 	if ((fd = open(dst, O_WRONLY | O_CREAT, 0600)) >= 0)
@@ -42,7 +42,7 @@ static void bindnode(char *src, char *dst) {
 		error(1, errno, "Failed to bind %s into new %s filesystem", src, dst);
 }
 
-void createroot(char *src, bool privileged) {
+void createroot(char *src, char *dst, bool privileged) {
 	mode_t mask;
 	pid_t child;
 	int res;
@@ -50,8 +50,21 @@ void createroot(char *src, bool privileged) {
 
 	mask = umask(0);
 
-	// Create a temp directory that will contain the new root.
-	root = tmpdir();
+	// Create /tmp since this is typically where the container's bind location
+	// will be, and helps with making SSH work for Continuum capsules.
+	mkdir("/tmp", 0755);
+	if (mount("tmpfs", "/tmp", "tmpfs", 0, "mode=0755") < 0)
+	  error(1, errno, "Failed to mount /tmp tmpfs in parent filesystem");
+
+	// Typically the dst is passed in, however fall back on handling to create a
+	// tmpdir and clean it up. This is primarily for localized testing of the
+	// spawner itself.
+	if (dst) {
+		mkdir(dst, 0755);
+		root = dst;
+	} else {
+		root = tmpdir();
+	}
 
 	// Mount the source to the root temp directory.
 	if (mount(src, root, NULL, MS_BIND | MS_REC, NULL) < 0)

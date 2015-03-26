@@ -11,3 +11,5 @@
 package stage2
 
 import "C"
+
+import _ "github.com/apcera/kurma/stage3"

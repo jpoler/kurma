@@ -17,11 +17,12 @@ import (
 // process. It allows the logic to be centralized here rather than separated
 // everywhere that might use it.
 type Launcher struct {
-	Directory string
-	User      string
-	Group     string
-	Uidmap    string
-	Gidmap    string
+	Directory     string
+	BindDirectory string
+	User          string
+	Group         string
+	Uidmap        string
+	Gidmap        string
 
 	IPCNamespace     int
 	MountNamespace   int
@@ -76,7 +77,10 @@ func (l *Launcher) generateArgs(cmdargs []string) ([]string, []*os.File) {
 
 	// Directory and filesystem settings
 	if l.Directory != "" {
-		args = append(args, "--directory", l.Directory)
+		args = append(args, "--container-directory", l.Directory)
+	}
+	if l.BindDirectory != "" {
+		args = append(args, "--bind-directory", l.BindDirectory)
 	}
 	if l.Chroot {
 		args = append(args, "--chroot")
@@ -194,8 +198,14 @@ func (l *Launcher) generateArgs(cmdargs []string) ([]string, []*os.File) {
 func (l *Launcher) Run(cmdargs ...string) (*os.Process, error) {
 	args, extraFiles := l.generateArgs(cmdargs)
 
+	// get the executable path to ourself
+	self, err := os.Readlink("/proc/self/exe")
+	if err != nil {
+		return nil, err
+	}
+
 	// Create and initialize the spawnwer.
-	cmd := exec.Command(os.Args[0], args...)
+	cmd := exec.Command(self, args...)
 	cmd.ExtraFiles = extraFiles
 	if l.Stdin != nil {
 		cmd.Stdin = l.Stdin

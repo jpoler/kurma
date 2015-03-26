@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/apcera/kurma/schema"
-	"github.com/apcera/kurma/stage2/client"
+	"github.com/apcera/kurma/stage3/client"
 	"github.com/apcera/util/envmap"
 	"github.com/apcera/util/hashutil"
 	"github.com/apcera/util/tarhelper"
@@ -194,15 +194,11 @@ func (c *Container) launchStage2() error {
 
 	// Initialize the stage2 launcher
 	launcher := &client.Launcher{
-		Directory:   c.stage3Path(),
-		Chroot:      true,
-		Detach:      true,
-		Environment: c.environment.Strings(),
-		Taskfiles:   c.cgroup.TasksFiles(),
-		Stdout:      stage2Stdout,
-		Stderr:      stage2Stdout,
-		User:        c.image.App.User,
-		Group:       c.image.App.Group,
+		Directory: c.stage3Path(),
+		Chroot:    true,
+		Cgroup:    c.cgroup,
+		Stdout:    stage2Stdout,
+		Stderr:    stage2Stdout,
 	}
 
 	// Configure which linux namespaces to create
@@ -235,7 +231,20 @@ func (c *Container) launchStage2() error {
 		}
 	}
 
-	if _, err := launcher.Run(c.image.App.Exec...); err != nil {
+	client, err := launcher.Run()
+	if err != nil {
+		return err
+	}
+	c.mutex.Lock()
+	c.initdClient = client
+	c.mutex.Unlock()
+
+	err = client.Start(
+		"app", c.image.App.Exec, c.environment.Strings(),
+		"/app.stdout", "/app.stderr",
+		c.image.App.User, c.image.App.Group,
+		time.Second*5)
+	if err != nil {
 		return err
 	}
 
@@ -250,42 +259,111 @@ func (c *Container) launchStage2() error {
 // watchContainer runs in another goroutine to handle transitioning to the
 // exited state if all the processes exit inside the container.
 func (c *Container) watchContainer() {
-	// initially wait a few seconds on the evaluation to ensure we don't get a
-	// race on container startup.
+	c.log.Trace("Starting waiting routine.")
+	defer c.log.Trace("Stopping waiting routine.")
 
-	// loop until there are no more processes inside the cgroup
-	for {
-		time.Sleep(time.Second * 5)
+	// There are two goroutines here. The first is one that runs the Wait()
+	// on the initClient. Every time wait finishes it means that a process
+	// has exited. When that happens we need to trigger a run of the status
+	// query to get the current running status of all the named processes.
 
-		if c.isShuttingDown() {
-			return
-		}
-		if destroyed, err := c.cgroup.Destroyed(); destroyed || err != nil {
-			break
-		}
+	// Spawn a status goroutine to check on the state of the container.
+	go c.statusRoutine()
 
-		tasks, err := c.cgroup.Tasks()
-		if err != nil {
-			c.log.Warnf("Failed to read container tasks: %v", err)
-			break
-		}
-
-		// no tasks left
-		if len(tasks) == 0 {
-			break
-		}
-	}
-
-	// if it exits, check if the container is shutting down
+	// Check to make sure we're still running. It might happen where the instance
+	// begins tearing down right after the wait goroutine was started. It may be
+	// possible for container to hit an error and begin tearind down before the
+	// wait goroutine gets scheduled by the runtime. When that happens, just
+	// return.
 	if c.isShuttingDown() {
 		return
 	}
 
-	// if it is still "running", move it to the exited state
-	c.log.Info("No processes remaining, transitioning to the EXITED state")
-	c.mutex.Lock()
-	c.state = EXITED
-	c.mutex.Unlock()
+	// Get the initdClient and ensure it is still set and not closed.
+	initdClient := c.getInitdClient()
+	if initdClient == nil || initdClient.Stopped() {
+		return
+	}
+
+	errors := 0
+	for errors < 3 {
+		if err := initdClient.Wait(0); err != nil {
+			if c.isShuttingDown() {
+				// If the container is shutting down then this may not matter
+				// so we just bail out.
+				return
+			}
+
+			c.log.Warnf("Error reading from initd socket: %s", err)
+			errors += 1
+			continue
+		}
+
+		// Spawn a status goroutine to check on the state of the container.
+		go c.statusRoutine()
+	}
+
+	// Error talking to the initd socket.. This means that we should just fail
+	// out completely.
+	c.log.Errorf(""+
+		"Too many errors trying to talk to the initd socket (%d), "+
+		"shutting the container down.", errors)
+	c.markExited()
+}
+
+// statusRoutine will check the status of the initd process in order to figure
+// out if any processes have died.
+func (c *Container) statusRoutine() {
+	c.log.Debug("Checking the status of running processes.")
+
+	// Check to make sure we're still running. It might happen where the instance
+	// begins tearing down right after the status goroutine was started. It may be
+	// possible for container to hit an error and begin tearind down before the
+	// status goroutine gets scheduled by the runtime. When that happens, just
+	// return.
+	if c.isShuttingDown() {
+		return
+	}
+
+	// Get the initdClient
+	initdClient := c.getInitdClient()
+	if initdClient == nil || initdClient.Stopped() {
+		return
+	}
+
+	// Query the current status of running processes.
+	results, err := initdClient.Status(time.Second)
+	if err != nil {
+		if c.isShuttingDown() {
+			// If the container is shutting down then its not really an error
+			// to be unable to call Status().
+			return
+		}
+
+		// Log so we know what is going on.
+		c.log.Errorf("Unable to get process statuses: %v", err)
+
+		// If we're unable to retrieve status, we can't track the state of the
+		// processes within the container and should fail the instance.
+		c.markExited()
+		return
+	}
+
+	// We want to count the number of running processes. If there are no running
+	// processes, then we'll mark it as exited.
+	runningCount := 0
+	for _, status := range results {
+		if status == "running" {
+			runningCount++
+		}
+	}
+
+	if runningCount == 0 {
+		c.log.Warnf("There were no running processes in the container, tearing it down, marking exited.")
+		c.markExited()
+	}
+
+	c.log.Debug("Done checking process status.")
 }
 
 // stoppingCgroups handles terminating all of the processes belonging to the

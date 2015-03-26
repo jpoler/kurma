@@ -109,7 +109,7 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 	// --------------------------------------------------------------------
 	if (args->container_directory != NULL) {
 		DEBUG("Creating root filesystem\n");
-		createroot(args->container_directory, args->privileged);
+		createroot(args->container_directory, args->bind_directory, args->privileged);
 	}
 
 	// --------------------------------------------------------------------

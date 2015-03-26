@@ -3,7 +3,6 @@
 ### Short Term
 
 - [ ] Re-enable user namespace functionality
-- [ ] Implement ability to enter a container
 - [ ] Implement hook calls
 - [ ] Review Manager/Container lock handling
 - [ ] Implement specifying the container name in the CLI
@@ -12,6 +11,8 @@
 - [ ] Look at a futex for protecting concurrent pivot_root calls.
 - [ ] Implement configuring disks
 - [ ] Add resource allocation
+- [X] Setup uid/gid look up in initd
+- [X] Implement ability to enter a container
 - [X] Address using switch\_root to re-enable pivot\_root for containers.
 - [X] Instrument uid/gid handling for the stage3 exec
 - [X] Implement PID 1 system bootstrapping
@@ -28,9 +29,11 @@
 - [ ] Add whitelist support for where to retrieve an image from
 - [ ] Add baseline enforcement of certain kernel namespaces, like mount, ipc,
   and pid.
+- [ ] Have enter command look up user shell if none is given and use that for
+  exec
 
 ### Exploritory
 
-- [ ] Change management of containers to be separated by process, so the daemon
+- [X] Change management of containers to be separated by process, so the daemon
   doesn't need a direct handle on the container.
 - [ ] Investigate authentication with gRPC
