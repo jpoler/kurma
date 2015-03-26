@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/apcera/kurma/client/cli"
-	"github.com/nsf/termbox-go"
+	"github.com/creack/termios/raw"
 
 	pb "github.com/apcera/kurma/stage1/client"
 	"golang.org/x/net/context"
@@ -30,18 +30,23 @@ func cliEnter(cmd *cli.Cmd) error {
 }
 
 func enter(cmd *cli.Cmd) error {
-	err := termbox.Init()
+	// Set the local terminal in raw mode to turn off buffering and local
+	// echo. Also defers setting it back to normal for when the call is done.
+	termios, err := raw.MakeRaw(os.Stdin.Fd())
 	if err != nil {
 		return err
 	}
-	defer termbox.Close()
+	defer raw.TcSetAttr(os.Stdin.Fd(), termios)
 
+	// Call the server
 	conn, err := grpc.Dial("127.0.0.1:12311")
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
+	// Initialize the call and send the first packet so that it knows what
+	// container we're connecting to.
 	c := pb.NewKurmaClient(conn)
 	stream, err := c.Enter(context.Background())
 	if err != nil {
@@ -49,15 +54,12 @@ func enter(cmd *cli.Cmd) error {
 	}
 	w := pb.NewByteStreamWriter(stream, cmd.Args[0])
 	r := pb.NewByteStreamReader(stream, nil)
-	w.Write(nil)
+	if _, err := w.Write(nil); err != nil {
+		return err
+	}
 
-	go func() {
-		_, err := io.Copy(w, os.Stdin)
-		fmt.Printf("writer done: %v\n", err)
-	}()
-	_, err = io.Copy(os.Stdout, r)
-	fmt.Printf("reader done: %v\n", err)
+	go io.Copy(w, os.Stdin)
+	io.Copy(os.Stdout, r)
 	stream.CloseSend()
-	fmt.Printf("done!\n")
 	return nil
 }

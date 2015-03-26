@@ -56,8 +56,7 @@ func defaultConfiguration() *kurmaConfig {
 		},
 		InitContainers: []string{
 			// "file:///ntpd.aci",
-			// "file:///etcd.aci",
-			"file:///gnatsd.aci",
+			"file:///console.aci",
 		},
 	}
 }

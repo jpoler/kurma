@@ -103,10 +103,6 @@ void createroot(char *src, bool privileged) {
 	if (mount("tmpfs", "tmp", "tmpfs", 0, "mode=0755") < 0)
 		error(1, errno, "Failed to mount /tmp tmpfs in new root filesystem");
 	umask(mask);
-
-	// Setup /dev/console
-	console = getconsole();
-	bindnode(ptsname(console), "dev/console");
 }
 
 void enterroot(bool privileged) {

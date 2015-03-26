@@ -123,6 +123,9 @@ func (container *Container) ShortName() string {
 	return container.pod.UUID.String()
 }
 
+// Enter is used to load a console session within the container. It re-enters
+// the container through the stage2 rather than through the initd so that it can
+// easily stream in and out.
 func (c *Container) Enter(stream *os.File) error {
 	launcher := &client.Launcher{
 		Environment: c.environment.Strings(),
@@ -153,6 +156,7 @@ func (c *Container) Enter(stream *os.File) error {
 	}
 	launcher.SetNS(tasks[0])
 
+	// launch!
 	p, err := launcher.Run("/bin/bash")
 	if err != nil {
 		return err

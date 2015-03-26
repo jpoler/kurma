@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
+
+	"github.com/apcera/util/str"
 
 	_ "github.com/apcera/kurma/stage2"
 )
@@ -194,6 +197,9 @@ func (l *Launcher) Run(cmdargs ...string) (*os.Process, error) {
 	// Create and initialize the spawnwer.
 	cmd := exec.Command(os.Args[0], args...)
 	cmd.ExtraFiles = extraFiles
+	if l.Stdin != nil {
+		cmd.Stdin = l.Stdin
+	}
 	if l.Stdout != nil {
 		cmd.Stdout = l.Stdout
 	}
@@ -205,6 +211,16 @@ func (l *Launcher) Run(cmdargs ...string) (*os.Process, error) {
 	// to run and take over execution.
 	cmd.Env = []string{
 		"SPAWNER_INTERCEPT=1",
+	}
+
+	// tty handling
+	if str.IsTerminal(l.Stdin) {
+		// Include setting the controlling tty, and close stdin (the slave pty)
+		// after the command is started.
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setctty: true, Setsid: true}
+		l.postStart = append(l.postStart, func() { l.Stdin.Close() })
+	} else {
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	}
 
 	// Start the container.
@@ -222,7 +238,6 @@ func (l *Launcher) Run(cmdargs ...string) (*os.Process, error) {
 		go cmd.Wait()
 	}
 
-	// FIXME return process state?
 	return cmd.Process, nil
 }
 
