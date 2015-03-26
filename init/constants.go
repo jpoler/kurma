@@ -12,11 +12,13 @@ var (
 		(*runner).configureEnvironment,
 		(*runner).mountCgroups,
 		(*runner).loadModules,
+		(*runner).createDirectories,
+		(*runner).mountDisks,
+		(*runner).cleanOldPods,
 		(*runner).configureHostname,
 		(*runner).configureNetwork,
 		(*runner).displayNetwork,
-		(*runner).createDirectories,
-		(*runner).readonly,
+		(*runner).rootReadonly,
 		(*runner).launchManager,
 		(*runner).startSignalHandling,
 		(*runner).startServer,
@@ -39,8 +41,12 @@ func defaultConfiguration() *kurmaConfig {
 	return &kurmaConfig{
 		Hostname:         "kurmaos",
 		ParentCgroupName: "kurma",
-		Paths: &kurmaPathConfiguration{
-			Containers: "/var/kurma/containers",
+		Disks: []*kurmaDiskConfiguration{
+			&kurmaDiskConfiguration{
+				Device: "/dev/sda",
+				FsType: "ext4",
+				Usage:  []kurmaPathUsage{kurmaPathPods, kurmaPathVolumes},
+			},
 		},
 		NetworkConfig: &kurmaNetworkConfig{
 			Interfaces: []*kurmaNetworkInterface{

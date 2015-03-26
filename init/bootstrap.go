@@ -5,6 +5,7 @@ package init
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -17,6 +18,7 @@ import (
 	"github.com/apcera/kurma/remote"
 	"github.com/apcera/kurma/stage1/container"
 	"github.com/apcera/kurma/stage1/server"
+	"github.com/apcera/kurma/util"
 	"github.com/apcera/util/proc"
 	"github.com/vishvananda/netlink"
 )
@@ -56,7 +58,8 @@ func (r *runner) createSystemMounts() error {
 		[]string{"/proc", "none", "proc"},
 		[]string{"/sys", "none", "sysfs"},
 		[]string{"/tmp", "none", "tmpfs"},
-		[]string{"/var/kurma", "none", "tmpfs"},
+		[]string{kurmaPath, "none", "tmpfs"},
+		[]string{mountPath, "none", "tmpfs"},
 
 		// put cgroups in a tmpfs so we can create the subdirectories
 		[]string{cgroupsMount, "none", "tmpfs"},
@@ -167,6 +170,81 @@ func (r *runner) loadModules() error {
 	return nil
 }
 
+// mountDisks handles walking the disk configuration to configure the specified
+// disks, mount them, and make them accessible at the right locations.
+func (r *runner) mountDisks() error {
+	// Walk the disks to validate that usage entries aren't in multiple
+	// records. Do this before making any changes to the disks.
+	usages := make(map[kurmaPathUsage]bool, 0)
+	for _, disk := range r.config.Disks {
+		for _, u := range disk.Usage {
+			if usages[u] {
+				return fmt.Errorf("multiple disk entries cannot specify the same usage [%s]", string(u))
+			}
+			usages[u] = true
+		}
+	}
+
+	// do the stuff
+	for _, disk := range r.config.Disks {
+		device := util.ResolveDevice(disk.Device)
+		if device == "" {
+			continue
+		}
+		fstype, _ := util.GetFsType(device)
+
+		// FIXME check fstype against currently supported types
+
+		// format it, if needed
+		if fstype == "" || fstype != disk.FsType {
+			r.log.Info("Formatting disk %s to $s", device, disk.FsType)
+			if err := formatDisk(device, disk.FsType); err != nil {
+				return err
+			}
+		}
+
+		// mount it
+		diskPath := filepath.Join(mountPath, strings.Replace(device, "/", "_", -1))
+		if err := handleMount(device, diskPath, disk.FsType, ""); err != nil {
+			return err
+		}
+
+		// setup usages
+		for _, usage := range disk.Usage {
+			usagePath := filepath.Join(diskPath, string(usage))
+
+			// ensure the directory exists
+			if err := os.MkdirAll(usagePath, os.FileMode(0755)); err != nil {
+				return err
+			}
+
+			// bind mount it to the kurma path
+			kurmaUsagePath := filepath.Join(kurmaPath, string(usage))
+			if err := bindMount(usagePath, kurmaUsagePath); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// cleanOldPods removes the directories for any pods remaining from a previous
+// run. If the host is booting up, those pods are obviously dead and stale.
+func (r *runner) cleanOldPods() error {
+	podsPath := filepath.Join(kurmaPath, string(kurmaPathPods))
+	fis, err := ioutil.ReadDir(podsPath)
+	if err != nil {
+		return err
+	}
+
+	for _, fi := range fis {
+		if err := os.RemoveAll(filepath.Join(podsPath, fi.Name())); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // configureHostname calls to set the hostname to the one provided via
 // configuration.
 func (r *runner) configureHostname() error {
@@ -263,22 +341,23 @@ func (r *runner) configureNetwork() error {
 	return nil
 }
 
-// createDirectories ensures the specified storage paths for containers or
-// volumes exist.
+// createDirectories ensures the specified storage paths for pods and volumes
+// exist.
 func (r *runner) createDirectories() error {
-	if r.config.Paths == nil {
-		return nil
-	}
+	podsPath := filepath.Join(kurmaPath, string(kurmaPathPods))
+	volumesPath := filepath.Join(kurmaPath, string(kurmaPathVolumes))
 
-	if r.config.Paths.Containers != "" {
-		if err := os.MkdirAll(r.config.Paths.Containers, os.FileMode(0755)); err != nil {
-			return err
-		}
+	if err := os.MkdirAll(podsPath, os.FileMode(0755)); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(volumesPath, os.FileMode(0755)); err != nil {
+		return err
 	}
 	return nil
 }
 
-func (r *runner) readonly() error {
+// rootReadonly makes the root parition read only.
+func (r *runner) rootReadonly() error {
 	return syscall.Mount("", "/", "", syscall.MS_REMOUNT|syscall.MS_RDONLY, "")
 }
 
@@ -307,7 +386,7 @@ func (r *runner) displayNetwork() error {
 func (r *runner) launchManager() error {
 	mopts := &container.Options{
 		ParentCgroupName:   r.config.ParentCgroupName,
-		ContainerDirectory: r.config.Paths.Containers,
+		ContainerDirectory: filepath.Join(kurmaPath, string(kurmaPathPods)),
 	}
 	m, err := container.NewManager(mopts)
 	if err != nil {

@@ -25,6 +25,11 @@ func handleMount(source, location, fstype, data string) error {
 	return syscall.Mount(source, location, fstype, syscall.MS_MGC_VAL, data)
 }
 
+// bindMount does a bind mount for the source to also be accessible at the dest.
+func bindMount(source, dest string) error {
+	return syscall.Mount(source, dest, "", syscall.MS_BIND, "")
+}
+
 // configureInterface is used to configure an individual interface against a
 // matched configuration. It sets up the addresses, the MTU, and invokes DHCP if
 // necessary.
@@ -135,4 +140,13 @@ func findManifest(r io.Reader) (*schema.ImageManifest, error) {
 		}
 		return manifest, nil
 	}
+}
+
+// formatDisk formats the device with the specified fstype.
+func formatDisk(device, fstype string) error {
+	cmd := exec.Command(fmt.Sprintf("/usr/sbin/mkfs.%s", fstype), device)
+	if b, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to format %s:: %s", device, string(b))
+	}
+	return nil
 }
