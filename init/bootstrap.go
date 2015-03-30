@@ -19,29 +19,42 @@ import (
 	"github.com/apcera/kurma/stage1/container"
 	"github.com/apcera/kurma/stage1/server"
 	"github.com/apcera/kurma/util"
+	"github.com/apcera/logray"
 	"github.com/apcera/util/proc"
 	"github.com/vishvananda/netlink"
 )
 
-// loadConfigurationFile loads a configuration file on disk and meges it with
-// the default configuration. This often acts as the per runtime environment
-// configuration.
+// loadConfigurationFile loads the configuration for the process. It will load
+// the default configuration settings, the disk based configuration, and the
+// command line based parameters. These get merged together to form the runtime
+// values.
 func (r *runner) loadConfigurationFile() error {
 	f, err := os.Open(configurationFile)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return err
+		return fmt.Errorf("failed to load configuration: %v", err)
 	}
 	defer f.Close()
 
 	var diskConfig *kurmaConfig
 	if err := json.NewDecoder(f).Decode(&diskConfig); err != nil {
-		return err
+		return fmt.Errorf("failed to parse configuration file: %v", err)
 	}
-
 	r.config.mergeConfig(diskConfig)
+
+	cmdlineConfig := getConfigFromCmdline()
+	r.config.mergeConfig(cmdlineConfig)
+	return nil
+}
+
+// configureLogging is used to enable tracing logging, if it is turned on in the
+// configuration.
+func (r *runner) configureLogging() error {
+	if r.config.Debug {
+		logray.ResetDefaultLogLevel(logray.ALL)
+	}
 	return nil
 }
 
@@ -106,6 +119,7 @@ func (r *runner) createSystemMounts() error {
 // the process.
 func (r *runner) configureEnvironment() error {
 	os.Setenv("TMPDIR", "/tmp")
+	os.Setenv("PATH", "/bin:/sbin")
 	return nil
 }
 
@@ -163,8 +177,8 @@ func (r *runner) loadModules() error {
 
 	r.log.Infof("Loading specified modules [%s]", strings.Join(r.config.Modules, ", "))
 	for _, mod := range r.config.Modules {
-		if err := exec.Command("/sbin/modprobe", mod).Run(); err != nil {
-			r.log.Errorf("- Failed to load module: %s", mod)
+		if b, err := exec.Command("modprobe", mod).CombinedOutput(); err != nil {
+			r.log.Errorf("- Failed to load module %q: %s", mod, string(b))
 		}
 	}
 	return nil
@@ -197,16 +211,18 @@ func (r *runner) mountDisks() error {
 
 		// format it, if needed
 		if fstype == "" || fstype != disk.FsType {
-			r.log.Info("Formatting disk %s to $s", device, disk.FsType)
+			r.log.Infof("Formatting disk %s to %s", device, disk.FsType)
 			if err := formatDisk(device, disk.FsType); err != nil {
-				return err
+				r.log.Errorf("failed to format disk %q: %v", device, err)
+				continue
 			}
 		}
 
 		// mount it
 		diskPath := filepath.Join(mountPath, strings.Replace(device, "/", "_", -1))
 		if err := handleMount(device, diskPath, disk.FsType, ""); err != nil {
-			return err
+			r.log.Errorf("failed to mount disk: %v", err)
+			continue
 		}
 
 		// setup usages
@@ -215,13 +231,15 @@ func (r *runner) mountDisks() error {
 
 			// ensure the directory exists
 			if err := os.MkdirAll(usagePath, os.FileMode(0755)); err != nil {
-				return err
+				r.log.Errorf("failed to create mount point: %v", err)
+				continue
 			}
 
 			// bind mount it to the kurma path
 			kurmaUsagePath := filepath.Join(kurmaPath, string(usage))
 			if err := bindMount(usagePath, kurmaUsagePath); err != nil {
-				return err
+				r.log.Errorf("failed to bind mount the selected volume: %v", err)
+				continue
 			}
 		}
 	}
@@ -234,12 +252,13 @@ func (r *runner) cleanOldPods() error {
 	podsPath := filepath.Join(kurmaPath, string(kurmaPathPods))
 	fis, err := ioutil.ReadDir(podsPath)
 	if err != nil {
-		return err
+		r.log.Errorf("failed to check for existing pods: %v", err)
+		return nil
 	}
 
 	for _, fi := range fis {
 		if err := os.RemoveAll(filepath.Join(podsPath, fi.Name())); err != nil {
-			return err
+			r.log.Errorf("failed to cleanup existing pods: %v", err)
 		}
 	}
 	return nil
@@ -268,14 +287,16 @@ func (r *runner) configureNetwork() error {
 		return nil
 	}
 
+	r.log.Info("Configuring network...")
+
 	links, err := netlink.LinkList()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to list network interfaces: %v", err)
 	}
 
 	for _, link := range links {
 		linkName := link.Attrs().Name
-		r.log.Infof("Configuring %s...", linkName)
+		r.log.Debugf("Configuring %s...", linkName)
 
 		// look for a matching network config entry
 		var netconf *kurmaNetworkInterface
@@ -324,16 +345,19 @@ func (r *runner) configureNetwork() error {
 	if len(r.config.NetworkConfig.DNS) > 0 {
 		// write the resolv.conf
 		if err := os.RemoveAll("/etc/resolv.conf"); err != nil {
-			return err
+			r.log.Errorf("failed to cleanup old resolv.conf: %v", err)
+			return nil
 		}
 		f, err := os.OpenFile("/etc/resolv.conf", os.O_CREATE, os.FileMode(0644))
 		if err != nil {
-			return err
+			r.log.Errorf("failed to open /etc/resolv.conf: %v", err)
+			return nil
 		}
 		defer f.Close()
 		for _, ns := range r.config.NetworkConfig.DNS {
 			if _, err := fmt.Fprintf(f, "nameserver %s\n", ns); err != nil {
-				return err
+				r.log.Errorf("failed to write to resolv.conf: %v", err)
+				return nil
 			}
 		}
 	}
@@ -348,10 +372,10 @@ func (r *runner) createDirectories() error {
 	volumesPath := filepath.Join(kurmaPath, string(kurmaPathVolumes))
 
 	if err := os.MkdirAll(podsPath, os.FileMode(0755)); err != nil {
-		return err
+		return fmt.Errorf("failed to create pods directory: %v", err)
 	}
 	if err := os.MkdirAll(volumesPath, os.FileMode(0755)); err != nil {
-		return err
+		return fmt.Errorf("failed to create volumes directory: %v", err)
 	}
 	return nil
 }
@@ -362,21 +386,25 @@ func (r *runner) rootReadonly() error {
 }
 
 func (r *runner) displayNetwork() error {
-	fmt.Printf("INTERFACES:\n")
-
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get all interfaces: %v", err)
 	}
+
+	r.log.Info(strings.Repeat("-", 30))
+	defer r.log.Info(strings.Repeat("-", 30))
+	r.log.Info("Network Information:")
 	for _, in := range interfaces {
-		fmt.Printf("\t%#v\n", in)
 		ad, err := in.Addrs()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get addresses on interface %q: %v", in.Name, err)
 		}
-		for _, a := range ad {
-			fmt.Printf("\t\taddr: %v\n", a)
+		addresses := make([]string, len(ad))
+		for i, a := range ad {
+			addresses[i] = a.String()
 		}
+
+		r.log.Infof("- %s: %s", in.Name, strings.Join(addresses, ", "))
 	}
 	return nil
 }
@@ -390,7 +418,7 @@ func (r *runner) launchManager() error {
 	}
 	m, err := container.NewManager(mopts)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create the container manager: %v", err)
 	}
 	m.Log = r.log.Clone()
 	r.manager = m
@@ -407,6 +435,17 @@ func (r *runner) startSignalHandling() error {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGCHLD)
 	go r.handleSIGCHLD(ch)
+	return nil
+}
+
+// startServer begins the main Kurma RPC server and will take over execution.
+func (r *runner) startServer() error {
+	opts := &server.Options{
+		ContainerManager: r.manager,
+	}
+
+	s := server.New(opts)
+	go s.Start()
 	return nil
 }
 
@@ -443,13 +482,122 @@ func (r *runner) startInitContainers() error {
 	return nil
 }
 
-// startServer begins the main Kurma RPC server and will take over execution.
-func (r *runner) startServer() error {
-	opts := &server.Options{
-		ContainerManager: r.manager,
+// startUdev handles launching the udev service.
+func (r *runner) startUdev() error {
+	if !r.config.Services.Udev.Enabled {
+		r.log.Trace("Skipping udev")
+		return nil
 	}
 
-	s := server.New(opts)
-	go s.Start()
+	f, err := remote.RetrieveImage(r.config.Services.Udev.ACI)
+	if err != nil {
+		r.log.Errorf("Failed to retrieve udev image: %v", err)
+		return nil
+	}
+	defer f.Close()
+
+	manifest, err := findManifest(f)
+	if err != nil {
+		r.log.Errorf("Failed to find manifest in udev image: %v", err)
+		return nil
+	}
+
+	if _, err := f.Seek(0, 0); err != nil {
+		r.log.Errorf("Failed to set up udev image: %v", err)
+		return nil
+	}
+
+	container, err := r.manager.Create("udev", manifest, f)
+	if err != nil {
+		r.log.Errorf("Failed to start up udev image: %v", err)
+		return nil
+	}
+	r.log.Debug("Started udev")
+
+	container.Wait()
+	r.log.Trace("Udev is finished")
+	if err := container.Stop(); err != nil {
+		r.log.Errorf("Failed to stop udev cleanly: %v", err)
+		return nil
+	}
+
+	return nil
+}
+
+// startConsole handles launching the udev service.
+func (r *runner) startNTP() error {
+	if !r.config.Services.NTP.Enabled {
+		r.log.Trace("Skipping NTP")
+		return nil
+	}
+
+	r.log.Info("Updating system clock via NTP...")
+
+	f, err := remote.RetrieveImage(r.config.Services.NTP.ACI)
+	if err != nil {
+		r.log.Errorf("Failed to retrieve console image: %v", err)
+		return nil
+	}
+	defer f.Close()
+
+	manifest, err := findManifest(f)
+	if err != nil {
+		r.log.Errorf("Failed to find manifest in console image: %v", err)
+		return nil
+	}
+
+	if _, err := f.Seek(0, 0); err != nil {
+		r.log.Errorf("Failed to set up console image: %v", err)
+		return nil
+	}
+
+	// add the ntp servers on as environment variables
+	manifest.App.Environment.Set(
+		"NTP_SERVERS", strings.Join(r.config.Services.NTP.Servers, " "))
+
+	if _, err := r.manager.Create("ntp", manifest, f); err != nil {
+		r.log.Errorf("Failed to start up console image: %v", err)
+		return nil
+	}
+	r.log.Debug("Started NTP")
+	return nil
+}
+
+// startConsole handles launching the udev service.
+func (r *runner) startConsole() error {
+	if !r.config.Services.Console.Enabled {
+		r.log.Trace("Skipping console")
+		return nil
+	}
+
+	f, err := remote.RetrieveImage(r.config.Services.Console.ACI)
+	if err != nil {
+		r.log.Errorf("Failed to retrieve console image: %v", err)
+		return nil
+	}
+	defer f.Close()
+
+	manifest, err := findManifest(f)
+	if err != nil {
+		r.log.Errorf("Failed to find manifest in console image: %v", err)
+		return nil
+	}
+
+	if _, err := f.Seek(0, 0); err != nil {
+		r.log.Errorf("Failed to set up console image: %v", err)
+		return nil
+	}
+
+	// send in the configuration information
+	manifest.App.Environment.Set(
+		"CONSOLE_PASSWORD", r.config.Services.Console.Password)
+	manifest.App.Environment.Set(
+		"CONSOLE_KEYS", strings.Join(r.config.Services.Console.SSHKeys, "\n"))
+
+	if _, err := r.manager.Create("console", manifest, f); err != nil {
+		r.log.Errorf("Failed to start up console image: %v", err)
+		return nil
+	}
+	r.log.Debug("Started console")
 	return nil
 }

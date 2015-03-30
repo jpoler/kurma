@@ -7,22 +7,26 @@ var (
 	// host system to create and manage containers. These functions focus
 	// primarily on runtime actions that must be done each time on boot.
 	setupFunctions = []func(*runner) error{
-		(*runner).loadConfigurationFile,
 		(*runner).createSystemMounts,
+		(*runner).loadConfigurationFile,
+		(*runner).configureLogging,
 		(*runner).configureEnvironment,
 		(*runner).mountCgroups,
 		(*runner).loadModules,
+		(*runner).startSignalHandling,
+		(*runner).launchManager,
 		(*runner).createDirectories,
+		(*runner).startUdev,
 		(*runner).mountDisks,
 		(*runner).cleanOldPods,
 		(*runner).configureHostname,
 		(*runner).configureNetwork,
-		(*runner).displayNetwork,
 		(*runner).rootReadonly,
-		(*runner).launchManager,
-		(*runner).startSignalHandling,
+		(*runner).startNTP,
 		(*runner).startServer,
 		(*runner).startInitContainers,
+		(*runner).displayNetwork,
+		(*runner).startConsole,
 	}
 )
 
@@ -41,28 +45,34 @@ func defaultConfiguration() *kurmaConfig {
 	return &kurmaConfig{
 		Hostname:         "kurmaos",
 		ParentCgroupName: "kurma",
-		Disks: []*kurmaDiskConfiguration{
-			&kurmaDiskConfiguration{
-				Device: "/dev/sda",
-				FsType: "ext4",
-				Usage:  []kurmaPathUsage{kurmaPathPods, kurmaPathVolumes},
-			},
-		},
 		NetworkConfig: &kurmaNetworkConfig{
 			Interfaces: []*kurmaNetworkInterface{
 				&kurmaNetworkInterface{
 					Device:  "lo",
 					Address: "127.0.0.1/8",
 				},
-				&kurmaNetworkInterface{
-					Device: "eth.+",
-					DHCP:   true,
-				},
 			},
 		},
-		InitContainers: []string{
-			// "file:///ntpd.aci",
-			"file:///console.aci",
+		Services: &kurmaServices{
+			NTP: &kurmaNTPService{
+				Enabled: true,
+				ACI:     "file:///ntp.aci",
+				Servers: []string{
+					"0.pool.ntp.org",
+					"1.pool.ntp.org",
+					"2.pool.ntp.org",
+					"3.pool.ntp.org",
+				},
+			},
+			Udev: &kurmaGenericService{
+				Enabled: false,
+				ACI:     "file:///udev.aci",
+			},
+			Console: &kurmaConsoleService{
+				Enabled:  true,
+				ACI:      "file:///console.aci",
+				Password: "kurma",
+			},
 		},
 	}
 }

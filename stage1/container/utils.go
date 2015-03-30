@@ -28,6 +28,10 @@ func (c *Container) stage3Path() string {
 	return filepath.Join(c.directory, "rootfs")
 }
 
+func (c *Container) socketPath() string {
+	return filepath.Join(c.directory, "socket")
+}
+
 func mkdirs(dirs []string, mode os.FileMode, existOk bool) error {
 	for i := range dirs {
 		// Make sure that this directory doesn't currently exist if existOk

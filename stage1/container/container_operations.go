@@ -110,32 +110,34 @@ func (c *Container) startingFilesystem() error {
 func (c *Container) startingNetworking() error {
 	c.log.Debug("Configuring network for container")
 
-	etcPath, err := c.ensureContainerPathExists("etc")
-	if err != nil {
-		return err
-	}
-	resolvPath := filepath.Join(etcPath, "resolv.conf")
-
-	if _, err := os.Lstat(resolvPath); err == nil {
-		if err := os.Remove(resolvPath); err != nil {
+	if _, err := os.Lstat("/etc/resolv.conf"); err == nil {
+		etcPath, err := c.ensureContainerPathExists("etc")
+		if err != nil {
 			return err
 		}
-	}
+		resolvPath := filepath.Join(etcPath, "resolv.conf")
 
-	hf, err := os.Open("/etc/resolv.conf")
-	if err != nil {
-		return err
-	}
-	defer hf.Close()
+		if _, err := os.Lstat(resolvPath); err == nil {
+			if err := os.RemoveAll(resolvPath); err != nil {
+				return err
+			}
+		}
 
-	cf, err := os.Create(resolvPath)
-	if err != nil {
-		return err
-	}
-	defer cf.Close()
+		hf, err := os.Open("/etc/resolv.conf")
+		if err != nil {
+			return err
+		}
+		defer hf.Close()
 
-	if _, err := io.Copy(cf, hf); err != nil {
-		return err
+		cf, err := os.Create(resolvPath)
+		if err != nil {
+			return err
+		}
+		defer cf.Close()
+
+		if _, err := io.Copy(cf, hf); err != nil {
+			return err
+		}
 	}
 
 	c.log.Debug("Done configuring networking")
@@ -153,6 +155,7 @@ func (c *Container) startingEnvironment() error {
 	for _, env := range c.image.App.Environment {
 		appenv.Set(env.Name, env.Value)
 	}
+	c.environment = appenv
 
 	return nil
 }
@@ -194,11 +197,12 @@ func (c *Container) launchStage2() error {
 
 	// Initialize the stage2 launcher
 	launcher := &client.Launcher{
-		Directory: c.stage3Path(),
-		Chroot:    true,
-		Cgroup:    c.cgroup,
-		Stdout:    stage2Stdout,
-		Stderr:    stage2Stdout,
+		SocketPath: c.socketPath(),
+		Directory:  c.stage3Path(),
+		Chroot:     true,
+		Cgroup:     c.cgroup,
+		Stdout:     stage2Stdout,
+		Stderr:     stage2Stdout,
 	}
 
 	// Configure which linux namespaces to create
@@ -239,8 +243,19 @@ func (c *Container) launchStage2() error {
 	c.initdClient = client
 	c.mutex.Unlock()
 
+	// iterate the command arguments and fill in any potential environment variable references
+	envmap := c.environment.Map()
+	envfunc := func(env string) string { return envmap[env] }
+	cmdargs := make([]string, len(c.image.App.Exec))
+	copy(cmdargs, c.image.App.Exec)
+	for i, s := range cmdargs {
+		cmdargs[i] = os.Expand(s, envfunc)
+	}
+
+	c.log.Tracef("Launching application [%q:%q]: %#v", c.image.App.User, c.image.App.Group, cmdargs)
+	c.log.Tracef("Application environment: %#v", c.environment.Strings())
 	err = client.Start(
-		"app", c.image.App.Exec, c.environment.Strings(),
+		"app", cmdargs, c.environment.Strings(),
 		"/app.stdout", "/app.stderr",
 		c.image.App.User, c.image.App.Group,
 		time.Second*5)
@@ -252,7 +267,7 @@ func (c *Container) launchStage2() error {
 	// processes die.
 	go c.watchContainer()
 
-	c.log.Debug("Done starting stage 2.")
+	c.log.Trace("Done starting stage 2.")
 	return nil
 }
 
@@ -314,7 +329,7 @@ func (c *Container) watchContainer() {
 // statusRoutine will check the status of the initd process in order to figure
 // out if any processes have died.
 func (c *Container) statusRoutine() {
-	c.log.Debug("Checking the status of running processes.")
+	c.log.Trace("Checking the status of running processes.")
 
 	// Check to make sure we're still running. It might happen where the instance
 	// begins tearing down right after the status goroutine was started. It may be
@@ -359,11 +374,11 @@ func (c *Container) statusRoutine() {
 	}
 
 	if runningCount == 0 {
-		c.log.Warnf("There were no running processes in the container, tearing it down, marking exited.")
+		c.log.Debugf("There were no running processes in the container, tearing it down, marking exited.")
 		c.markExited()
 	}
 
-	c.log.Debug("Done checking process status.")
+	c.log.Trace("Done checking process status.")
 }
 
 // stoppingCgroups handles terminating all of the processes belonging to the

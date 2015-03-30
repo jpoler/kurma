@@ -3,7 +3,9 @@
 package main
 
 import (
+	"fmt"
 	"net/url"
+	"os"
 	"runtime"
 
 	kinit "github.com/apcera/kurma/init"
@@ -11,7 +13,7 @@ import (
 )
 
 const (
-	formatString = "%color:class%[%classfixed%]%color:default% %message%"
+	formatString = "%color:class%[%class%]%color:default% %message%"
 )
 
 func main() {
@@ -21,10 +23,10 @@ func main() {
 			"format": []string{formatString},
 		}).Encode(),
 	}
-	logray.AddDefaultOutput(u.String(), logray.ALL)
+	logray.AddDefaultOutput(u.String(), logray.INFOPLUS)
 
 	if err := kinit.Run(); err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "Failure running process: %v", err)
 	}
 	runtime.Goexit()
 }

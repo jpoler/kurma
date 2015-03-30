@@ -65,7 +65,7 @@ func (s *Server) Start() error {
 	// create the gRPC server and run
 	gs := grpc.NewServer()
 	pb.RegisterKurmaServer(gs, rpc)
-	s.log.Info("Server is ready")
+	s.log.Debug("Server is ready")
 	gs.Serve(l)
 	return nil
 }

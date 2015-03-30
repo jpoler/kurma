@@ -90,6 +90,7 @@ func (manager *Manager) Create(
 	container := &Container{
 		manager:          manager,
 		log:              manager.Log.Clone(),
+		waitch:           make(chan bool),
 		initialImageFile: image,
 		image:            imageManifest,
 		pod: &schema.PodManifest{

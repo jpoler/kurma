@@ -2,3 +2,4 @@
 kurma-cli
 kurma-init
 kurma-server
+*.test

@@ -48,6 +48,7 @@ type Container struct {
 	shuttingDown bool
 	state        ContainerState
 	mutex        sync.Mutex
+	waitch       chan bool
 }
 
 // Manifest returns the current pod manifest for the App Container
@@ -181,6 +182,16 @@ func (c *Container) getInitdClient() client3.Client {
 // markFailed is used to transition the container to the exited state.
 func (c *Container) markExited() {
 	c.mutex.Lock()
+	if c.state != EXITED {
+		close(c.waitch)
+	}
 	c.state = EXITED
 	c.mutex.Unlock()
+}
+
+// Wait can be used to block until the processes within a container are finished
+// executed. It is primarily intended for an internal API to code against system
+// services.
+func (c *Container) Wait() {
+	<-c.waitch
 }

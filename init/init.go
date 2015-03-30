@@ -3,6 +3,8 @@
 package init
 
 import (
+	"fmt"
+
 	"github.com/apcera/kurma/stage1/container"
 	"github.com/apcera/logray"
 )
@@ -34,7 +36,7 @@ func (r *runner) Run() error {
 	for _, f := range setupFunctions {
 		if err := f(r); err != nil {
 			r.log.Errorf("ERROR: %v", err)
-			return err
+			return fmt.Errorf("%v: %v", f, err)
 		}
 	}
 	return nil

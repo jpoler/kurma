@@ -9,8 +9,8 @@
 - [ ] Implement appc isolators for capabilities
 - [ ] Implement appc isolators for cgroups
 - [ ] Look at a futex for protecting concurrent pivot_root calls.
-- [ ] Implement configuring disks
 - [ ] Add resource allocation
+- [X] Implement configuring disks
 - [X] Setup uid/gid look up in initd
 - [X] Implement ability to enter a container
 - [X] Address using switch\_root to re-enable pivot\_root for containers.

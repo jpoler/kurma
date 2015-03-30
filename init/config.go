@@ -3,12 +3,14 @@
 package init
 
 type kurmaConfig struct {
+	Debug            bool                      `json:"debug,omitempty"`
 	Datasources      []string                  `json:"datasources,omitempty"`
 	Hostname         string                    `json:"hostname,omitempty"`
 	NetworkConfig    *kurmaNetworkConfig       `json:"network_config,omitempty"`
 	Modules          []string                  `json:"modules,omitmepty"`
 	Disks            []*kurmaDiskConfiguration `json:"disks,omitempty"`
 	ParentCgroupName string                    `json:"parent_cgroup_name,omitempty"`
+	Services         *kurmaServices            `json:"services,omitempty"`
 	InitContainers   []string                  `json:"init_containers,omitempty"`
 }
 
@@ -43,7 +45,36 @@ const (
 	mountPath = "/mnt"
 )
 
+type kurmaServices struct {
+	NTP     *kurmaNTPService     `json:"ntp,omitempty"`
+	Udev    *kurmaGenericService `json:"udev,omitempty"`
+	Console *kurmaConsoleService `json:"console,omitempty"`
+}
+
+type kurmaGenericService struct {
+	Enabled bool   `json:"enabled,omitempty"`
+	ACI     string `json:"aci,omitempty"`
+}
+
+type kurmaNTPService struct {
+	Enabled  bool     `json:"enabled,omitempty"`
+	ACI      string   `json:"aci,omitempty"`
+	Servers  []string `json:"servers,omitempty"`
+	Interval string   `json:"interval,omitempty"`
+}
+
+type kurmaConsoleService struct {
+	Enabled  bool     `json:"enabled,omitempty"`
+	ACI      string   `json:"aci,omitempty"`
+	Password string   `json:"password,omitmepty"`
+	SSHKeys  []string `json:"ssh_keys,omitempty"`
+}
+
 func (cfg *kurmaConfig) mergeConfig(o *kurmaConfig) {
+	if o == nil {
+		return
+	}
+
 	// FIXME datasources
 
 	// replace hostname
@@ -84,5 +115,32 @@ func (cfg *kurmaConfig) mergeConfig(o *kurmaConfig) {
 	// append init containers
 	if len(o.InitContainers) > 0 {
 		cfg.InitContainers = append(cfg.InitContainers, o.InitContainers...)
+	}
+
+	if o.Services != nil {
+		// NTP
+		if o.Services.NTP != nil {
+			cfg.Services.NTP.Enabled = o.Services.NTP.Enabled
+			cfg.Services.NTP.ACI = o.Services.NTP.ACI
+			if len(o.Services.NTP.Servers) > 0 {
+				cfg.Services.NTP.Servers = o.Services.NTP.Servers
+			}
+		}
+
+		// Udev
+		if o.Services.Udev != nil {
+			cfg.Services.Udev.Enabled = o.Services.Udev.Enabled
+			cfg.Services.Udev.ACI = o.Services.Udev.ACI
+		}
+
+		// Console
+		if o.Services.Console != nil {
+			cfg.Services.Console.Enabled = o.Services.Console.Enabled
+			cfg.Services.Console.ACI = o.Services.Console.ACI
+			cfg.Services.Console.Password = o.Services.Console.Password
+			if len(o.Services.Console.SSHKeys) > 0 {
+				cfg.Services.Console.SSHKeys = o.Services.Console.SSHKeys
+			}
+		}
 	}
 }

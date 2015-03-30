@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -37,10 +38,9 @@ func configureInterface(link netlink.Link, netconf *kurmaNetworkInterface) error
 	linkName := link.Attrs().Name
 	addressConfigured := true
 
-	// FIXME DHCP
 	// configure using DHCP
 	if netconf.DHCP {
-		cmd := exec.Command("/sbin/udhcpc", "-i", linkName, "-t", "20", "-n")
+		cmd := exec.Command("udhcpc", "-i", linkName, "-t", "20", "-n")
 		cmd.Stdin = nil
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -86,8 +86,11 @@ func configureInterface(link netlink.Link, netconf *kurmaNetworkInterface) error
 		}
 	}
 
-	if err := netlink.LinkSetUp(link); err != nil {
-		return fmt.Errorf("failed to set link %s up: %v", linkName, err)
+	// verify it is up at the end
+	if link.Attrs().Flags&net.FlagUp == 0 {
+		if err := netlink.LinkSetUp(link); err != nil {
+			return fmt.Errorf("failed to set link %s up: %v", linkName, err)
+		}
 	}
 
 	return nil
@@ -144,9 +147,9 @@ func findManifest(r io.Reader) (*schema.ImageManifest, error) {
 
 // formatDisk formats the device with the specified fstype.
 func formatDisk(device, fstype string) error {
-	cmd := exec.Command(fmt.Sprintf("/usr/sbin/mkfs.%s", fstype), device)
+	cmd := exec.Command(fmt.Sprintf("mkfs.%s", fstype), device)
 	if b, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to format %s:: %s", device, string(b))
+		return fmt.Errorf("failed to format %s: %s", device, string(b))
 	}
 	return nil
 }

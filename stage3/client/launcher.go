@@ -5,7 +5,6 @@ package client
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/apcera/kurma/cgroups"
@@ -25,9 +24,10 @@ var DefaultTimeout = time.Second * 10
 // Launcher handles wrapping stage2 to execute the stage3 init process. It has
 // many of the same settings which gets propagated down to stage2.
 type Launcher struct {
-	Directory string
-	Uidmap    string
-	Gidmap    string
+	SocketPath string
+	Directory  string
+	Uidmap     string
+	Gidmap     string
 
 	NewIPCNamespace     bool
 	NewMountNamespace   bool
@@ -50,8 +50,6 @@ type Launcher struct {
 // will return the client to talk to the init, or an error in the case of a
 // failure.
 func (l *Launcher) Run() (Client, error) {
-	socket := filepath.Join(l.Directory, "socket")
-
 	// Initialize the stage2 launcher
 	launcher := &kclient.Launcher{
 		Directory:     l.Directory,
@@ -74,7 +72,7 @@ func (l *Launcher) Run() (Client, error) {
 		Taskfiles:           l.Cgroup.TasksFiles(),
 		Environment: []string{
 			"INITD_INTERCEPT=1",
-			fmt.Sprintf("INITD_SOCKET=%s", socket),
+			fmt.Sprintf("INITD_SOCKET=%s", l.SocketPath),
 		},
 	}
 
@@ -89,7 +87,7 @@ func (l *Launcher) Run() (Client, error) {
 	}
 
 	// create the socket and wait for it
-	c := New(socket)
+	c := New(l.SocketPath)
 	if err := c.WaitForSocket(DefaultTimeout); err != nil {
 		return nil, err
 	}

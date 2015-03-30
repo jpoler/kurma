@@ -77,6 +77,12 @@ void createroot(char *src, char *dst, bool privileged) {
 	if (privileged) {
 		if (mount("devtmpfs", "dev", "devtmpfs", 0, "") < 0)
 			error(1, errno, "Failed to mount /dev devtmpfs in new root filesystem");
+
+		// ptmx is still symlinked regardless of privileged mode. This is because
+		// the devpts within the container is a new instance, so /dev/ptmx can't be
+		// inherited from devtmpfs or the host.
+		unlink("dev/ptmx");
+		res = symlink("pts/ptmx", "dev/ptmx");
 	} else {
 		if (mount("tmpfs", "dev", "tmpfs", MS_NOEXEC | MS_STRICTATIME, "mode=0755") < 0)
 			error(1, errno, "Failed to mount /dev tmpfs in new root filesystem");
