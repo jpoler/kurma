@@ -161,7 +161,7 @@ func TestClient_Chroot(t *testing.T) {
 	readChan := setupReadRequest(t, l, &chrootContent, "REQUEST OK\n")
 
 	client := New(socketFile)
-	err := client.Chroot("/chroot", time.Second)
+	err := client.Chroot("/chroot", false, time.Second)
 	tt.TestExpectSuccess(t, err)
 
 	select {
@@ -170,7 +170,7 @@ func TestClient_Chroot(t *testing.T) {
 		tt.Fatalf(t, "Expected to have read client response within 1 second")
 	}
 
-	expectedRequest := "1\n1\n2\n6\nCHROOT7\n/chroot"
+	expectedRequest := "1\n1\n3\n6\nCHROOT7\n/chroot5\nfalse"
 	tt.TestEqual(t, chrootContent, expectedRequest)
 }
 
@@ -213,7 +213,7 @@ func TestClient_Start(t *testing.T) {
 	client := New(socketFile)
 	err := client.Start(
 		"echo", []string{"123"}, []string{"FOO=bar"},
-		"/a", "/b", 123, 456, time.Second,
+		"/a", "/b", "123", "456", time.Second,
 	)
 	tt.TestExpectSuccess(t, err)
 

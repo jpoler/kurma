@@ -265,120 +265,88 @@ func (c *Container) launchStage2() error {
 
 	// Start a goroutine to handle transitioning to the exited state when all
 	// processes die.
-	go c.watchContainer()
+	go c.waitLoop()
 
 	c.log.Trace("Done starting stage 2.")
 	return nil
 }
 
-// watchContainer runs in another goroutine to handle transitioning to the
-// exited state if all the processes exit inside the container.
-func (c *Container) watchContainer() {
-	c.log.Trace("Starting waiting routine.")
-	defer c.log.Trace("Stopping waiting routine.")
+// waitLoop continously runs a combination of 'WAIT' and 'STATUS' on the initd
+// client in order to get notifications of process termination.
+func (c *Container) waitLoop() {
+	c.log.Debug("Starting wait loop")
+	defer c.log.Debug("Done with wait loop")
 
-	// There are two goroutines here. The first is one that runs the Wait()
-	// on the initClient. Every time wait finishes it means that a process
-	// has exited. When that happens we need to trigger a run of the status
-	// query to get the current running status of all the named processes.
-
-	// Spawn a status goroutine to check on the state of the container.
-	go c.statusRoutine()
-
-	// Check to make sure we're still running. It might happen where the instance
-	// begins tearing down right after the wait goroutine was started. It may be
-	// possible for container to hit an error and begin tearind down before the
-	// wait goroutine gets scheduled by the runtime. When that happens, just
-	// return.
-	if c.isShuttingDown() {
-		return
-	}
-
-	// Get the initdClient and ensure it is still set and not closed.
 	initdClient := c.getInitdClient()
-	if initdClient == nil || initdClient.Stopped() {
+	if initdClient == nil {
+		c.log.Info("Initd client is missing, skipping wait loop")
 		return
 	}
 
-	errors := 0
-	for errors < 3 {
-		if err := initdClient.Wait(0); err != nil {
-			if c.isShuttingDown() {
-				// If the container is shutting down then this may not matter
-				// so we just bail out.
-				return
-			}
-
-			c.log.Warnf("Error reading from initd socket: %s", err)
-			errors += 1
-			continue
-		}
-
-		// Spawn a status goroutine to check on the state of the container.
-		go c.statusRoutine()
-	}
-
-	// Error talking to the initd socket.. This means that we should just fail
-	// out completely.
-	c.log.Errorf(""+
-		"Too many errors trying to talk to the initd socket (%d), "+
-		"shutting the container down.", errors)
-	c.markExited()
-}
-
-// statusRoutine will check the status of the initd process in order to figure
-// out if any processes have died.
-func (c *Container) statusRoutine() {
-	c.log.Trace("Checking the status of running processes.")
-
-	// Check to make sure we're still running. It might happen where the instance
-	// begins tearing down right after the status goroutine was started. It may be
-	// possible for container to hit an error and begin tearind down before the
-	// status goroutine gets scheduled by the runtime. When that happens, just
-	// return.
-	if c.isShuttingDown() {
-		return
-	}
-
-	// Get the initdClient
-	initdClient := c.getInitdClient()
-	if initdClient == nil || initdClient.Stopped() {
-		return
-	}
-
-	// Query the current status of running processes.
-	results, err := initdClient.Status(time.Second)
-	if err != nil {
-		if c.isShuttingDown() {
-			// If the container is shutting down then its not really an error
-			// to be unable to call Status().
+	// Wait() blocks until one of the tracked processes in the
+	// container exits. If there are no running processes in the
+	// container it returns immediately. Status() needs to be
+	// called once Wait() returns in order to snapshot the state
+	// of all processes. If no processes are running according to
+	// Status() results, container needs to shut down normally.
+	// If any processes exited abnormally, container is marked as
+	// failed. If there are any processes still running in the container,
+	// the loop is re-entered and gets blocked on Wait() again.
+	for {
+		if c.isShuttingDown() || initdClient.Stopped() {
+			c.log.Info("Container is shutting down, exiting wait loop")
 			return
 		}
 
-		// Log so we know what is going on.
-		c.log.Errorf("Unable to get process statuses: %v", err)
+		// TODO(oleg): do we even need to retry on failed WAIT?
+		waitMaxErrors := 3
+		waitErrors := 0
 
-		// If we're unable to retrieve status, we can't track the state of the
-		// processes within the container and should fail the instance.
-		c.markExited()
-		return
-	}
+		for {
+			if err := initdClient.Wait(0); err != nil {
+				c.log.Errorf("Wait() returned an error: %s (retries = %d)", err, waitErrors)
+				waitErrors++
+				if waitErrors >= waitMaxErrors {
+					c.log.Errorf("Marking container as failed after %d Wait() errors", waitMaxErrors)
+					c.markExited()
+					return
+				} else {
+					if c.isShuttingDown() {
+						c.log.Info("Container is shutting down, ignoring Wait() error")
+						return
+					}
+					c.log.Warn("Retrying failed Wait()")
+				}
+			}
+			break
+		}
 
-	// We want to count the number of running processes. If there are no running
-	// processes, then we'll mark it as exited.
-	runningCount := 0
-	for _, status := range results {
-		if status == "running" {
-			runningCount++
+		statuses, err := initdClient.Status(time.Second)
+		if err != nil {
+			c.log.Errorf("Status() returned an error: %s", err)
+			if c.isShuttingDown() {
+				c.log.Info("Container is shutting down, ignoring Status() error")
+				return
+			}
+			c.log.Error("Marking container as failed after Status() error")
+			c.markExited()
+			return
+		}
+
+		nProcsRunning := 0
+
+		for _, status := range statuses {
+			if status == "running" {
+				nProcsRunning++
+			}
+		}
+
+		if nProcsRunning == 0 {
+			c.log.Debugf("There were no running processes in the container, tearing it down, marking exited.")
+			c.markExited()
+			return
 		}
 	}
-
-	if runningCount == 0 {
-		c.log.Debugf("There were no running processes in the container, tearing it down, marking exited.")
-		c.markExited()
-	}
-
-	c.log.Trace("Done checking process status.")
 }
 
 // stoppingCgroups handles terminating all of the processes belonging to the

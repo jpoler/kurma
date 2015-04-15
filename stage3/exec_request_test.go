@@ -51,9 +51,8 @@ func TestExecRequest(t *testing.T) {
 	TestEqual(t, children, []int{tasks[1]})
 
 	// Ensure correct child properties
-	t1cmdline, t1env, t1ppid, t1children := taskInfo(t, tasks[1])
-	TestEqual(t, t1cmdline, []string{os.Args[0]})
-	TestEqual(t, t1env, []string{"INITD_DEBUG=1", "INITD_SOCKET=" + socket})
+	_, t1env, t1ppid, t1children := taskInfo(t, tasks[1])
+	TestEqual(t, t1env, []string{"INITD_DEBUG=1", "INITD_INTERCEPT=1", "INITD_SOCKET=" + socket})
 	TestEqual(t, t1ppid, tasks[0])
 	TestEqual(t, t1children, []int{})
 

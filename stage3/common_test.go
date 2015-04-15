@@ -138,6 +138,7 @@ func StartInitd(
 	cmd.NewPidNamespace = true
 	cmd.NewUTSNamespace = true
 	cmd.Env = []string{
+		"INITD_INTERCEPT=1",
 		"INITD_DEBUG=1",
 		fmt.Sprintf("INITD_SOCKET=%s", socket),
 	}

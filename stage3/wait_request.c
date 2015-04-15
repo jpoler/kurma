@@ -3,6 +3,7 @@
 #ifndef INITD_SERVER_WAIT_REQUEST_C
 #define INITD_SERVER_WAIT_REQUEST_C
 
+#include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +37,20 @@ void wait_request(struct request *r)
 	if ((r->outer_len != 1) || (r->data[0][1] != NULL)) {
 		ERROR("[%d] Protocol error.\n", r->fd);
 		initd_response_protocol_error(r);
+		return;
+	}
+
+	int n_procs_alive = 0;
+	for (p = process_head; p != NULL; p = p->next) {
+		if (!p->terminated) {
+			n_procs_alive += 1;
+		}
+	}
+
+	// If all processes we're tracking are already terminated, return immediately.
+	if (n_procs_alive == 0) {
+		INFO("[%d] All processes are terminated, responding to WAIT immediately.\n", r->fd);
+		initd_response_request_ok(r);
 		return;
 	}
 
