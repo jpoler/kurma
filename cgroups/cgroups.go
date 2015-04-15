@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -320,6 +321,34 @@ func (c *Cgroup) DiskUsed(rootDir string) (int64, error) {
 
 }
 
+// NetworkUsed returns a map of network utilization for processes in the cgroup.
+func (c *Cgroup) NetworkUsed(ifs []*net.Interface) (nuMap map[string]NetUsage, err error) {
+	// Out usage map.
+	nuMap = make(map[string]NetUsage, len(ifs))
+
+	for _, intf := range ifs {
+		var err error
+
+		sysDir := fmt.Sprintf("/sys/class/net/%s/statistics", intf.Name)
+		txFile := filepath.Join(sysDir, "tx_bytes")
+		rxFile := filepath.Join(sysDir, "rx_bytes")
+
+		nu := NetUsage{}
+		nu.TxBytes, err = proc.ReadInt64(txFile)
+		if err != nil {
+			return nil, err
+		}
+
+		nu.RxBytes, err = proc.ReadInt64(rxFile)
+		if err != nil {
+			return nil, err
+		}
+
+		nuMap[intf.Name] = nu
+	}
+	return nuMap, nil
+}
+
 // Creates a new Cgroup that will be a child of the given cgroup.
 func (c *Cgroup) New(name string) (*Cgroup, error) {
 	return New(path.Join(c.name, name))
@@ -456,4 +485,14 @@ func (c *Cgroup) SignalAll(signal syscall.Signal) (int, error) {
 	}
 
 	return signaled, err
+}
+
+// ----------------
+// Utility structures
+// ----------------
+
+// Specific to Network Resources
+type NetUsage struct {
+	TxBytes int64
+	RxBytes int64
 }
