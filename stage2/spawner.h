@@ -83,6 +83,12 @@ typedef struct clone_destination_data {
 	// The GID mapping to write to the container's gid_map file
 	char *gidmap;
 
+	// Maximum number of open files in the spawned process.
+	int max_open_files;
+
+	// Maximum numnber of processes that can be created by the spawned process.
+	int max_processes;
+
 	// The directory for the container's filesystem
 	char *container_directory;
 

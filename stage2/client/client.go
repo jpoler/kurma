@@ -6,11 +6,18 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"syscall"
 
 	"github.com/apcera/util/str"
 
 	_ "github.com/apcera/kurma/stage2"
+)
+
+const (
+	// Default number of open files and processes to allow within a new container.
+	defaultMaxOpenFiles = 512
+	defaultMaxProcesses = 1024
 )
 
 // Launcher is used to encompass the logic needed to launch the stage2
@@ -37,6 +44,9 @@ type Launcher struct {
 	NewPIDNamespace     bool
 	NewUTSNamespace     bool
 	NewUserNamespace    bool
+
+	MaxOpenFiles int
+	MaxProcesses int
 
 	Chroot         bool
 	Detach         bool
@@ -162,6 +172,16 @@ func (l *Launcher) generateArgs(cmdargs []string) ([]string, []*os.File) {
 	if l.Detach {
 		args = append(args, "--detach")
 	}
+
+	// Apply resource limits
+	if l.MaxOpenFiles <= 0 {
+		l.MaxOpenFiles = defaultMaxOpenFiles
+	}
+	args = append(args, "--max-open-files", strconv.Itoa(l.MaxOpenFiles))
+	if l.MaxProcesses <= 0 {
+		l.MaxProcesses = defaultMaxProcesses
+	}
+	args = append(args, "--max-processes", strconv.Itoa(l.MaxProcesses))
 
 	// Set the file descriptors it should use for stdin/out/err. Note this uses
 	// the ExtraFiles on the os/exec below. The file descriptor numbers start from

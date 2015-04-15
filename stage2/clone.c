@@ -12,6 +12,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <sys/resource.h>
+
 #include "spawner.h"
 
 void spawn_child(clone_destination_data *args) {
@@ -38,6 +40,7 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 	int flags;
 	int pipe_fd[2];
 	char ch;
+	struct rlimit rlim;
 
 	// --------------------------------------------------------------------
 	// Step 1: Dup the stdoutfd and stderrfd file descriptors into the
@@ -78,6 +81,27 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 	// --------------------------------------------------------------------
 	// Step 6: Drop privledges to just the current user.
 	// --------------------------------------------------------------------
+
+	// Enjoying last moments of being a real root: setting limits on resources
+	// that are not controlled by cgroups: max number of open files and max number
+	// of processes.
+
+	DEBUG("Setting open files limit\n");
+	if (args->max_open_files != 0) {
+	  rlim.rlim_cur = args->max_open_files;
+	  rlim.rlim_max = args->max_open_files;
+	  if (setrlimit(RLIMIT_NOFILE, &rlim) < 0)
+			error(1, errno, "Failed to call setrlimit for max open files");
+	}
+
+	DEBUG("Setting processes limit\n");
+	if (args->max_processes != 0) {
+	  rlim.rlim_cur = args->max_processes;
+	  rlim.rlim_max = args->max_processes;
+	  if (setrlimit(RLIMIT_NPROC, &rlim) < 0)
+			error(1, errno, "Failed to call setrlimit for max processes");
+	}
+
 	DEBUG("Resetting uid/gid\n");
 	if (setgid(getgid()) < 0 || setuid(getuid()) < 0)
 		error(1, errno, "Failed to drop privileges");

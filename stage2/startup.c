@@ -98,6 +98,9 @@ void cspawner(int argc, char **argv) {
 				{"user", required_argument, 0, 'p'},
 				{"group", required_argument, 0, 'q'},
 
+				{"max-open-files", required_argument, 0, 'r'},
+				{"max-processes", required_argument, 0, 's'},
+
 				{"detach", no_argument, &detach, 1},
 				{"chroot", no_argument, &chroot, 1},
 				{"host-privileged", no_argument, &privileged, 1},
@@ -106,7 +109,7 @@ void cspawner(int argc, char **argv) {
 		/* getopt_long stores the option index here. */
 		int option_index = 0;
 
-		c = getopt_long(argc, argv, "abcdefghijklmnopq", long_options, &option_index);
+		c = getopt_long(argc, argv, "abcdefghijklmnopqrs", long_options, &option_index);
 
 		/* Detect the end of the options. */
 		if (c == -1)
@@ -193,6 +196,12 @@ void cspawner(int argc, char **argv) {
 		case 'q':
 			args->group = optarg;
 			break;
+
+			// limits
+		case 'r':
+		  args->max_open_files = atoi(optarg);
+		case 's':
+		  args->max_processes = atoi(optarg);
 
 		case '?':
 			/* getopt_long already printed an error message. */
