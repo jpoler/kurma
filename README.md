@@ -24,7 +24,8 @@ which are responsible for setting up and launching a container.
   care of creating the necessary kernel namespaces or joining existing ones, and
   also joins any cgroups that are necessary.
 * Stage 3: After stage 2 is complete, it should `exec` the stage 3 binary which
-  takes over as the process within the container.
+  takes over inside the container and acts as an `init` process. It is used to
+  execute the image's start command.
 
 Note that the container process can be extended beyond the base 3 stages through
 more explicit coordination between stage 1 and stage 3. For instance, additional
@@ -59,3 +60,9 @@ binary needs to setup a container, it will call itself with a specific intercept
 environment variable set. This will trigger it to take over and to handle the
 container setup. It is implemented in C, but still build with `go build` and be
 included in a normal binary.
+
+#### stage3
+
+The `stage3` subdirectory containers the code for the process that acts as the
+`init` within the container. It exposes a simple text based RPC for the stage1
+process to communicate with it to have it execute commands or check status.
