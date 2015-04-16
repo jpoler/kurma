@@ -11,7 +11,6 @@ import (
 	"github.com/apcera/logray"
 	"github.com/apcera/util/uuid"
 	"github.com/appc/spec/schema"
-	"github.com/appc/spec/schema/types"
 	"golang.org/x/net/context"
 )
 
@@ -67,20 +66,12 @@ func (s *rpcServer) UploadImage(stream pb.Kurma_UploadImageServer) error {
 
 	r := pb.NewByteStreamReader(stream, packet)
 	s.log.Debug("Initializing container")
-	_, err = s.manager.Create(pc.name, pc.imageManifest, r)
-	if err != nil {
-		return err
-	}
+	s.manager.Create(pc.name, pc.imageManifest, r)
 	return nil
 }
 
 func (s *rpcServer) Destroy(ctx context.Context, in *pb.ContainerRequest) (*pb.None, error) {
-	cuuid, err := types.NewUUID(in.Uuid)
-	if err != nil {
-		return nil, err
-	}
-
-	container := s.manager.Container(*cuuid)
+	container := s.manager.Container(in.Uuid)
 	if container == nil {
 		return nil, fmt.Errorf("specified container not found")
 	}
@@ -108,12 +99,7 @@ func (s *rpcServer) List(ctx context.Context, in *pb.None) (*pb.ListResponse, er
 }
 
 func (s *rpcServer) Get(ctx context.Context, in *pb.ContainerRequest) (*pb.Container, error) {
-	cuuid, err := types.NewUUID(in.Uuid)
-	if err != nil {
-		return nil, err
-	}
-
-	container := s.manager.Container(*cuuid)
+	container := s.manager.Container(in.Uuid)
 	if container == nil {
 		return nil, fmt.Errorf("specified container not found")
 	}

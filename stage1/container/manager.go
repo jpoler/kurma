@@ -26,7 +26,7 @@ type Options struct {
 type Manager struct {
 	Log *logray.Logger
 
-	containers     map[types.UUID]*Container
+	containers     map[string]*Container
 	containersLock sync.RWMutex
 
 	cgroup    *cgroups.Cgroup
@@ -50,7 +50,7 @@ func NewManager(opts *Options) (*Manager, error) {
 
 	m := &Manager{
 		Log:        logray.New(),
-		containers: make(map[types.UUID]*Container),
+		containers: make(map[string]*Container),
 		directory:  opts.ContainerDirectory,
 		cgroup:     cg,
 	}
@@ -74,13 +74,7 @@ func (manager *Manager) Validate(imageManifest *schema.ImageManifest) error {
 // reader as the source of the ACI.
 func (manager *Manager) Create(
 	name string, imageManifest *schema.ImageManifest, image io.ReadCloser,
-) (*Container, error) {
-	// generate our UUID
-	cuuid, err := types.NewUUID(uuid.Variant4().String())
-	if err != nil {
-		return nil, err
-	}
-
+) *Container {
 	// handle a blank name
 	if name == "" {
 		name = imageManifest.Name.String()
@@ -90,13 +84,13 @@ func (manager *Manager) Create(
 	container := &Container{
 		manager:          manager,
 		log:              manager.Log.Clone(),
+		uuid:             uuid.Variant4().String(),
 		waitch:           make(chan bool),
 		initialImageFile: image,
 		image:            imageManifest,
 		pod: &schema.PodManifest{
 			ACKind:    schema.PodManifestKind,
 			ACVersion: schema.AppContainerVersion,
-			UUID:      *cuuid,
 			Apps: schema.AppList([]schema.RuntimeApp{
 				schema.RuntimeApp{
 					Name: types.ACName(name),
@@ -109,25 +103,25 @@ func (manager *Manager) Create(
 			}),
 		},
 	}
-	container.log.SetField("container", cuuid.String())
-	container.log.Debugf("Launching container %s", cuuid.String())
+	container.log.SetField("container", container.uuid)
+	container.log.Debugf("Launching container %s", container.uuid)
 
 	// add it to the manager's map
 	manager.containersLock.Lock()
-	manager.containers[container.pod.UUID] = container
+	manager.containers[container.uuid] = container
 	manager.containersLock.Unlock()
 
 	// begin the startup sequence
 	container.start()
 
-	return container, nil
+	return container
 }
 
 // removes a child container from the Container Manager.
 func (manager *Manager) remove(container *Container) {
 	manager.containersLock.Lock()
 	container.mutex.Lock()
-	delete(manager.containers, container.pod.UUID)
+	delete(manager.containers, container.uuid)
 	container.mutex.Unlock()
 	manager.containersLock.Unlock()
 }
@@ -145,7 +139,7 @@ func (manager *Manager) Containers() []*Container {
 
 // Container returns a specific container matching the provided UUID, or nil if
 // a container with the UUID does not exist.
-func (manager *Manager) Container(uuid types.UUID) *Container {
+func (manager *Manager) Container(uuid string) *Container {
 	manager.containersLock.RLock()
 	defer manager.containersLock.RUnlock()
 	return manager.containers[uuid]

@@ -8,12 +8,12 @@ import (
 )
 
 func pbContainer(c *container.Container) (*pb.Container, error) {
-	manifest := c.Manifest()
 	pbc := &pb.Container{
-		Uuid: manifest.UUID.String(),
+		Uuid: c.UUID(),
 	}
 
 	// marshal the pod manifest
+	manifest := c.Manifest()
 	b, err := manifest.MarshalJSON()
 	if err != nil {
 		return nil, err

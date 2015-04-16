@@ -7,7 +7,6 @@ import (
 	"io"
 
 	pb "github.com/apcera/kurma/stage1/client"
-	"github.com/appc/spec/schema/types"
 	"github.com/kr/pty"
 )
 
@@ -21,13 +20,9 @@ func (s *rpcServer) Enter(stream pb.Kurma_EnterServer) error {
 	if err != nil {
 		return err
 	}
-	cuuid, err := types.NewUUID(chunk.StreamId)
-	if err != nil {
-		return err
-	}
 
 	// get the container
-	container := s.manager.Container(*cuuid)
+	container := s.manager.Container(chunk.StreamId)
 	if container == nil {
 		return fmt.Errorf("specified container not found")
 	}

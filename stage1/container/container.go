@@ -38,6 +38,7 @@ type Container struct {
 
 	image            *schema.ImageManifest
 	pod              *schema.PodManifest
+	uuid             string
 	initialImageFile io.ReadCloser
 
 	cgroup      *cgroups.Cgroup
@@ -115,15 +116,23 @@ func (container *Container) Stop() error {
 	return nil
 }
 
+// UUID returns the UUID associated with the current Container.
+func (container *Container) UUID() string {
+	if container == nil {
+		return ""
+	}
+	return container.uuid
+}
+
 // ShortName returns a shortened name that can be used to reference the
 // Container. It is made of up of the first 8 digits of the container's UUID.
 func (container *Container) ShortName() string {
 	if container == nil {
 		return ""
-	} else if len(container.pod.UUID.String()) >= 8 {
-		return container.pod.UUID.String()[0:8]
+	} else if len(container.uuid) >= 8 {
+		return container.uuid[0:8]
 	}
-	return container.pod.UUID.String()
+	return container.uuid
 }
 
 // Enter is used to load a console session within the container. It re-enters
