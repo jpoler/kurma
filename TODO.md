@@ -2,6 +2,7 @@
 
 ### Short Term
 
+- [ ] Support working directory
 - [ ] Re-enable user namespace functionality
 - [ ] Implement hook calls
 - [ ] Review Manager/Container lock handling
@@ -10,6 +11,8 @@
 - [ ] Implement appc isolators for cgroups
 - [ ] Look at a futex for protecting concurrent pivot_root calls.
 - [ ] Add resource allocation
+- [ ] Baseline validation of manifest before starting container
+- [ ] Metadata API support
 - [X] Implement configuring disks
 - [X] Setup uid/gid look up in initd
 - [X] Implement ability to enter a container
@@ -23,6 +26,7 @@
 
 ## Mid Term
 
+- [ ] Multiple apps in a single pod
 - [ ] Kernel module scoping for each environment
 - [ ] Configurable configuration datasources
 - [ ] Add support for image retrieval through an http proxy

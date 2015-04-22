@@ -147,8 +147,15 @@ func (c *Container) startingNetworking() error {
 // startingEnvironment sets up the environment variables for the container.
 func (c *Container) startingEnvironment() error {
 	c.environment = envmap.NewEnvMap()
-	c.environment.Set("TMPDIR", "/tmp")
 	c.environment.Set("HOME", "/")
+	c.environment.Set("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+	c.environment.Set("SHELL", "/bin/sh")
+	c.environment.Set("TMPDIR", "/tmp")
+	c.environment.Set("USER", c.image.App.User)
+	c.environment.Set("LOGNAME", c.image.App.User)
+
+	c.environment.Set("AC_APP_NAME", c.image.Name.String())
+	// FIXME set AC_METADATA_URL once metadata API is added
 
 	// Add the application's environment
 	appenv := c.environment.NewChild()
