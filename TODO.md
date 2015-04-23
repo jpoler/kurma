@@ -3,6 +3,7 @@
 ### Short Term
 
 - [ ] Support working directory
+- [ ] Support volumes
 - [ ] Re-enable user namespace functionality
 - [ ] Implement hook calls
 - [ ] Review Manager/Container lock handling

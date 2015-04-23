@@ -39,6 +39,7 @@ func TestStatusRequest(t *testing.T) {
 		request := [][]string{
 			[]string{"START", name},
 			cmd,
+			[]string{""},
 			[]string{"KTEST=VTEST"},
 			[]string{stdout, stderr},
 			[]string{"99", "99"},

@@ -31,7 +31,7 @@ type Client interface {
 
 	// Starts a given named command within the initd server.
 	Start(
-		name string, command []string, env []string,
+		name string, command []string, workingDirectory string, env []string,
 		stdout string, stderr, user, group string, timeout time.Duration,
 	) error
 
@@ -319,12 +319,13 @@ func (c *client) Exec(
 
 // Issues a request to start a new command.
 func (c *client) Start(
-	name string, command []string, env []string, stdout string, stderr,
+	name string, command []string, workingDirectory string, env []string, stdout string, stderr,
 	user, group string, timeout time.Duration,
 ) error {
 	request := [][]string{
 		[]string{"START", name},
 		command,
+		[]string{workingDirectory},
 		env,
 		[]string{stdout, stderr},
 		[]string{user, group},

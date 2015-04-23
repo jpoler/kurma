@@ -33,6 +33,7 @@ func TestUnnamedStartRequest(t *testing.T) {
 	request := [][]string{
 		[]string{"START"},
 		sleep1,
+		[]string{""},
 		[]string{"KTEST=VTEST"},
 		[]string{stdout, stderr},
 		[]string{"99", "99"},
@@ -81,6 +82,7 @@ func TestUnnamedStartRequest(t *testing.T) {
 	request = [][]string{
 		[]string{"START"},
 		sleep2,
+		[]string{""},
 		[]string{"KTEST2=VTEST2", "KTEST3=VTEST3"},
 		[]string{stdout, stderr},
 		[]string{"99", "99"},
@@ -137,6 +139,7 @@ func TestNamedStartRequest(t *testing.T) {
 	request := [][]string{
 		[]string{"START", "SLEEP1"},
 		sleep1,
+		[]string{""},
 		[]string{"KTEST=VTEST"},
 		[]string{stdout, stderr},
 		[]string{"99", "99"},
@@ -183,6 +186,7 @@ func TestNamedStartRequest(t *testing.T) {
 	request = [][]string{
 		[]string{"START", "START2"},
 		sleep2,
+		[]string{""},
 		[]string{"KTEST2=VTEST2", "KTEST3=VTEST3"},
 		[]string{stdout, stderr},
 		[]string{"99", "99"},
@@ -229,6 +233,7 @@ func TestBadStartRequest(t *testing.T) {
 		[][]string{
 			[]string{"START"},
 			[]string{"COMMAND"},
+			[]string{"DIR"},
 			[]string{"ENVKEY=ENVVALUE"},
 			[]string{"STDOUT", "STDERR"},
 		},
@@ -237,6 +242,7 @@ func TestBadStartRequest(t *testing.T) {
 		[][]string{
 			[]string{"START"},
 			[]string{"COMMAND"},
+			[]string{"DIR"},
 			[]string{"ENVKEY=ENVVALUE"},
 			[]string{"STDOUT", "STDERR"},
 			[]string{"UID", "GID"},
@@ -247,6 +253,7 @@ func TestBadStartRequest(t *testing.T) {
 		[][]string{
 			[]string{"START", "NAME", "EXTRA"},
 			[]string{"COMMAND"},
+			[]string{"DIR"},
 			[]string{"ENVKEY=ENVVALUE"},
 			[]string{"STDOUT", "STDERR"},
 			[]string{"UID", "GID"},
@@ -256,6 +263,7 @@ func TestBadStartRequest(t *testing.T) {
 		[][]string{
 			[]string{"START"},
 			[]string{"COMMAND"},
+			[]string{"DIR"},
 			[]string{"ENVKEY=ENVVALUE"},
 			[]string{"STDOUT", "STDERR", "EXTRA"},
 			[]string{"UID", "GID"},
@@ -265,6 +273,7 @@ func TestBadStartRequest(t *testing.T) {
 		[][]string{
 			[]string{"START"},
 			[]string{"COMMAND"},
+			[]string{"DIR"},
 			[]string{"ENVKEY=ENVVALUE"},
 			[]string{"STDOUT", "STDERR"},
 			[]string{"UID", "GID", "EXTRA"},
@@ -274,42 +283,57 @@ func TestBadStartRequest(t *testing.T) {
 		[][]string{
 			[]string{"START"},
 			[]string{},
+			[]string{"DIR"},
 			[]string{"ENVKEY=ENVVALUE"},
 			[]string{"STDOUT", "STDERR"},
 			[]string{"UID", "GID"},
 		},
 
-		// Test 7: Missing STDERR
+		// Test 7: Too many args with WORKING DIR
 		[][]string{
 			[]string{"START"},
 			[]string{"COMMAND"},
+			[]string{"DIR", "DOH"},
+			[]string{"ENVKEY=ENVVALUE"},
+			[]string{"STDOUT", "STDERR"},
+			[]string{"UID", "GID"},
+		},
+
+		// Test 8: Missing STDERR
+		[][]string{
+			[]string{"START"},
+			[]string{"COMMAND"},
+			[]string{"DIR"},
 			[]string{"ENVKEY=ENVVALUE"},
 			[]string{"STDOUT"},
 			[]string{"UID", "GID"},
 		},
 
-		// Test 8: Missing STDOUT
+		// Test 9: Missing STDOUT
 		[][]string{
 			[]string{"START"},
 			[]string{"COMMAND"},
+			[]string{"DIR"},
 			[]string{"ENVKEY=ENVVALUE"},
 			[]string{},
 			[]string{"UID", "GID"},
 		},
 
-		// Test 9: Missing GID
+		// Test 10: Missing GID
 		[][]string{
 			[]string{"START"},
 			[]string{"COMMAND"},
+			[]string{"DIR"},
 			[]string{"ENVKEY=ENVVALUE"},
 			[]string{"STDOUT", "STDERR"},
 			[]string{"UID"},
 		},
 
-		// Test 10: Missing UID
+		// Test 11: Missing UID
 		[][]string{
 			[]string{"START"},
 			[]string{"COMMAND"},
+			[]string{"DIR"},
 			[]string{"ENVKEY=ENVVALUE"},
 			[]string{"STDOUT", "STDERR"},
 			[]string{},

@@ -31,6 +31,7 @@ void start_request(struct request *r)
 	// {
 	//   { "START", ["<NAME>"], },
 	//   { "<COMMAND>", ["<ARGS>", ...]},
+	//   { "<WORKING DIRECTORY" },
 	//   { ["<ENV=VALUE>", ...]},
 	//   { "<STDOUTFILE>", "<STDERRFILE>" },
 	//   { "<UID>", "<GID>" },
@@ -40,22 +41,24 @@ void start_request(struct request *r)
 
 	// Protocol error conditions.
 	if (
-			(r->outer_len != 5) ||
+			(r->outer_len != 6) ||
 			// START/NAME
 			(r->data[0][1] != NULL && r->data[0][2] != NULL) ||
 			// COMMAND
 			(r->data[1][0] == NULL) ||
+			// WORKING DIRECTORY
+			(r->data[2][1] != NULL) ||
 			// ENV (all values are valid.)
 			// STDOUTFILE, STDERRFILE
-			(r->data[3][0] == NULL) ||
-			(r->data[3][1] == NULL) ||
-			(r->data[3][2] != NULL) ||
-			// UID, GID
 			(r->data[4][0] == NULL) ||
 			(r->data[4][1] == NULL) ||
 			(r->data[4][2] != NULL) ||
+			// UID, GID
+			(r->data[5][0] == NULL) ||
+			(r->data[5][1] == NULL) ||
+			(r->data[5][2] != NULL) ||
 			// END
-			(r->data[5] != NULL))
+			(r->data[6] != NULL))
 	{
 		ERROR("[%d] Protocol error.\n", r->fd);
 		initd_response_protocol_error(r);
@@ -83,8 +86,8 @@ void start_request(struct request *r)
 	}
 
 	// Compute the uid and gid
-	uid = (uid_t)uidforuser2(r->data[4][0]);
-	gid = (gid_t)gidforgroup2(r->data[4][1]);
+	uid = (uid_t)uidforuser2(r->data[5][0]);
+	gid = (gid_t)gidforgroup2(r->data[5][1]);
 
 	fflush(NULL);
 	pid = fork();
@@ -96,7 +99,7 @@ void start_request(struct request *r)
 	} else if (pid == 0) {
 		// Setup the initial FD's.
 		close_all_fds();
-		initd_setup_fds(r->data[3][0], r->data[3][1]);
+		initd_setup_fds(r->data[4][0], r->data[4][1]);
 
 		// Ensure that we are fully root.
 		if (setregid(gid, gid) != 0) { _exit(EX_OSERR); }
@@ -104,12 +107,20 @@ void start_request(struct request *r)
 		if (setreuid(uid, uid) != 0) { _exit(EX_OSERR); }
 		if (getuid() != uid) { _exit(EX_OSERR); }
 
+		// chdir into the working directory
+		if (r->data[2][0] != NULL) {
+			if(chdir(r->data[2][0]) == -1) {
+				ERROR("[%d] Error setting working directory: %s\n", r->fd, strerror(errno));
+				_exit(EX_OSERR);
+			}
+		}
+
 		if (setenv("PATH", "/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin", 0) == -1) {
 			ERROR("[%d] Error setting PATH: %s\n", r->fd, strerror(errno));
 			_exit(EX_OSERR);
 		}
 
-		if (execvpe(r->data[1][0], r->data[1], r->data[2]) == -1) {
+		if (execvpe(r->data[1][0], r->data[1], r->data[3]) == -1) {
 			ERROR("[%d] Error executing \"%s\": %s\n", r->fd, r->data[1][0], strerror(errno));
 			_exit(EX_OSERR);
 		}

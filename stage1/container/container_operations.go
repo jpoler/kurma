@@ -259,10 +259,16 @@ func (c *Container) launchStage2() error {
 		cmdargs[i] = os.Expand(s, envfunc)
 	}
 
+	// validate the working directory
+	workingDirectory := c.image.App.WorkingDirectory
+	if workingDirectory == "" {
+		workingDirectory = "/"
+	}
+
 	c.log.Tracef("Launching application [%q:%q]: %#v", c.image.App.User, c.image.App.Group, cmdargs)
 	c.log.Tracef("Application environment: %#v", c.environment.Strings())
 	err = client.Start(
-		"app", cmdargs, c.environment.Strings(),
+		"app", cmdargs, workingDirectory, c.environment.Strings(),
 		"/app.stdout", "/app.stderr",
 		c.image.App.User, c.image.App.Group,
 		time.Second*5)

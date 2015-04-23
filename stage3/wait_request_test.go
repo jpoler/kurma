@@ -33,6 +33,7 @@ func TestWaitRequest(t *testing.T) {
 	request := [][]string{
 		[]string{"START", "sleep"},
 		[]string{"/bin/sleep", "60"},
+		[]string{""},
 		[]string{"KTEST=VTEST"},
 		[]string{stdout, stderr},
 		[]string{"99", "99"},
@@ -115,6 +116,7 @@ func TestWaitRequestDoesntBlockProcessesAreFinished(t *testing.T) {
 	request := [][]string{
 		[]string{"START", "sleep"},
 		[]string{"/bin/sleep", "0.05"},
+		[]string{""},
 		[]string{"KTEST=VTEST"},
 		[]string{stdout, stderr},
 		[]string{"99", "99"},

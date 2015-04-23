@@ -271,7 +271,7 @@ func BadResultsCheck(t *testing.T, tests [][][]string) {
 		} else if reply != "PROTOCOL ERROR\n" {
 			errors = append(errors, fmt.Sprintf(
 				"test %d: Reply was not 'PROTOCOL ERROR', was '%s' with err [%v]",
-				id, reply, err))
+				id+1, reply, err))
 		}
 	}
 

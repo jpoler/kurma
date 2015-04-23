@@ -212,7 +212,7 @@ func TestClient_Start(t *testing.T) {
 
 	client := New(socketFile)
 	err := client.Start(
-		"echo", []string{"123"}, []string{"FOO=bar"},
+		"echo", []string{"123"}, "dir", []string{"FOO=bar"},
 		"/a", "/b", "123", "456", time.Second,
 	)
 	tt.TestExpectSuccess(t, err)
@@ -223,7 +223,7 @@ func TestClient_Start(t *testing.T) {
 		tt.Fatalf(t, "Expected to have read client response within 1 second")
 	}
 
-	expectedRequest := "1\n5\n2\n5\nSTART4\necho1\n3\n1231\n7\nFOO=bar2\n2\n/a2\n/b2\n3\n1233\n456"
+	expectedRequest := "1\n6\n2\n5\nSTART4\necho1\n3\n1231\n3\ndir1\n7\nFOO=bar2\n2\n/a2\n/b2\n3\n1233\n456"
 	tt.TestEqual(t, startContent, expectedRequest)
 }
 
