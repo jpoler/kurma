@@ -191,7 +191,7 @@ type kurmaUploadImageClient struct {
 }
 
 func (x *kurmaUploadImageClient) Send(m *ByteChunk) error {
-	return x.ClientStream.SendProto(m)
+	return x.ClientStream.SendMsg(m)
 }
 
 func (x *kurmaUploadImageClient) CloseAndRecv() (*None, error) {
@@ -199,7 +199,7 @@ func (x *kurmaUploadImageClient) CloseAndRecv() (*None, error) {
 		return nil, err
 	}
 	m := new(None)
-	if err := x.ClientStream.RecvProto(m); err != nil {
+	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
@@ -252,12 +252,12 @@ type kurmaEnterClient struct {
 }
 
 func (x *kurmaEnterClient) Send(m *ByteChunk) error {
-	return x.ClientStream.SendProto(m)
+	return x.ClientStream.SendMsg(m)
 }
 
 func (x *kurmaEnterClient) Recv() (*ByteChunk, error) {
 	m := new(ByteChunk)
-	if err := x.ClientStream.RecvProto(m); err != nil {
+	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
@@ -278,9 +278,9 @@ func RegisterKurmaServer(s *grpc.Server, srv KurmaServer) {
 	s.RegisterService(&_Kurma_serviceDesc, srv)
 }
 
-func _Kurma_Create_Handler(srv interface{}, ctx context.Context, buf []byte) (proto.Message, error) {
+func _Kurma_Create_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(CreateRequest)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(KurmaServer).Create(ctx, in)
@@ -305,20 +305,20 @@ type kurmaUploadImageServer struct {
 }
 
 func (x *kurmaUploadImageServer) SendAndClose(m *None) error {
-	return x.ServerStream.SendProto(m)
+	return x.ServerStream.SendMsg(m)
 }
 
 func (x *kurmaUploadImageServer) Recv() (*ByteChunk, error) {
 	m := new(ByteChunk)
-	if err := x.ServerStream.RecvProto(m); err != nil {
+	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func _Kurma_Destroy_Handler(srv interface{}, ctx context.Context, buf []byte) (proto.Message, error) {
+func _Kurma_Destroy_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(ContainerRequest)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(KurmaServer).Destroy(ctx, in)
@@ -328,9 +328,9 @@ func _Kurma_Destroy_Handler(srv interface{}, ctx context.Context, buf []byte) (p
 	return out, nil
 }
 
-func _Kurma_List_Handler(srv interface{}, ctx context.Context, buf []byte) (proto.Message, error) {
+func _Kurma_List_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(None)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(KurmaServer).List(ctx, in)
@@ -340,9 +340,9 @@ func _Kurma_List_Handler(srv interface{}, ctx context.Context, buf []byte) (prot
 	return out, nil
 }
 
-func _Kurma_Get_Handler(srv interface{}, ctx context.Context, buf []byte) (proto.Message, error) {
+func _Kurma_Get_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(ContainerRequest)
-	if err := proto.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(KurmaServer).Get(ctx, in)
@@ -367,12 +367,12 @@ type kurmaEnterServer struct {
 }
 
 func (x *kurmaEnterServer) Send(m *ByteChunk) error {
-	return x.ServerStream.SendProto(m)
+	return x.ServerStream.SendMsg(m)
 }
 
 func (x *kurmaEnterServer) Recv() (*ByteChunk, error) {
 	m := new(ByteChunk)
-	if err := x.ServerStream.RecvProto(m); err != nil {
+	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
