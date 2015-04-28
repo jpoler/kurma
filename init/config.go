@@ -3,15 +3,16 @@
 package init
 
 type kurmaConfig struct {
-	Debug            bool                      `json:"debug,omitempty"`
-	Datasources      []string                  `json:"datasources,omitempty"`
-	Hostname         string                    `json:"hostname,omitempty"`
-	NetworkConfig    *kurmaNetworkConfig       `json:"network_config,omitempty"`
-	Modules          []string                  `json:"modules,omitmepty"`
-	Disks            []*kurmaDiskConfiguration `json:"disks,omitempty"`
-	ParentCgroupName string                    `json:"parent_cgroup_name,omitempty"`
-	Services         *kurmaServices            `json:"services,omitempty"`
-	InitContainers   []string                  `json:"init_containers,omitempty"`
+	Debug              bool                      `json:"debug,omitempty"`
+	Datasources        []string                  `json:"datasources,omitempty"`
+	Hostname           string                    `json:"hostname,omitempty"`
+	NetworkConfig      *kurmaNetworkConfig       `json:"network_config,omitempty"`
+	Modules            []string                  `json:"modules,omitmepty"`
+	Disks              []*kurmaDiskConfiguration `json:"disks,omitempty"`
+	ParentCgroupName   string                    `json:"parent_cgroup_name,omitempty"`
+	RequiredNamespaces []string                  `json:"required_namespaces,omitempty"`
+	Services           *kurmaServices            `json:"services,omitempty"`
+	InitContainers     []string                  `json:"init_containers,omitempty"`
 }
 
 type kurmaNetworkConfig struct {

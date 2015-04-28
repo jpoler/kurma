@@ -415,6 +415,7 @@ func (r *runner) launchManager() error {
 	mopts := &container.Options{
 		ParentCgroupName:   r.config.ParentCgroupName,
 		ContainerDirectory: filepath.Join(kurmaPath, string(kurmaPathPods)),
+		RequiredNamespaces: r.config.RequiredNamespaces,
 	}
 	m, err := container.NewManager(mopts)
 	if err != nil {

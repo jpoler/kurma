@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/apcera/kurma/cgroups"
+	kschema "github.com/apcera/kurma/schema"
 	"github.com/apcera/logray"
 	"github.com/apcera/util/uuid"
 	"github.com/appc/spec/schema"
@@ -19,6 +20,7 @@ import (
 type Options struct {
 	ParentCgroupName   string
 	ContainerDirectory string
+	RequiredNamespaces []string
 }
 
 // Manager handles the management of the containers running and available on the
@@ -29,8 +31,9 @@ type Manager struct {
 	containers     map[string]*Container
 	containersLock sync.RWMutex
 
-	cgroup    *cgroups.Cgroup
-	directory string
+	cgroup             *cgroups.Cgroup
+	directory          string
+	requiredNamespaces []string
 }
 
 // NewManager creates a new Manager with the provided options. It will ensure
@@ -49,10 +52,11 @@ func NewManager(opts *Options) (*Manager, error) {
 	}
 
 	m := &Manager{
-		Log:        logray.New(),
-		containers: make(map[string]*Container),
-		directory:  opts.ContainerDirectory,
-		cgroup:     cg,
+		Log:                logray.New(),
+		containers:         make(map[string]*Container),
+		directory:          opts.ContainerDirectory,
+		cgroup:             cg,
+		requiredNamespaces: opts.RequiredNamespaces,
 	}
 	return m, nil
 }
@@ -67,6 +71,31 @@ func (manager *Manager) Validate(imageManifest *schema.ImageManifest) error {
 	if len(imageManifest.App.Exec) == 0 {
 		return fmt.Errorf("the manifest App.Exec must specify a command to run")
 	}
+
+	// If the namespaces isolator is specified, validate a minimum set of namespaces
+	if iso := imageManifest.App.Isolators.GetByName(kschema.LinuxNamespacesName); iso != nil {
+		if niso, ok := iso.Value().(*kschema.LinuxNamespaces); ok {
+			checks := map[string]func() bool{
+				"ipc":   niso.IPC,
+				"mount": niso.Mount,
+				"net":   niso.Net,
+				"pid":   niso.PID,
+				"user":  niso.User,
+				"uts":   niso.UTS,
+			}
+			for _, ns := range manager.requiredNamespaces {
+				f, exists := checks[ns]
+				if !exists {
+					return fmt.Errorf("Internal server error")
+				}
+				if !f() {
+					return fmt.Errorf("the manifest %s isolator must require the %s namespace",
+						kschema.LinuxNamespacesName, ns)
+				}
+			}
+		}
+	}
+
 	return nil
 }
 

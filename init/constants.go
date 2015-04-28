@@ -43,8 +43,9 @@ const (
 // applied on boot.
 func defaultConfiguration() *kurmaConfig {
 	return &kurmaConfig{
-		Hostname:         "kurmaos",
-		ParentCgroupName: "kurma",
+		Hostname:           "kurmaos",
+		ParentCgroupName:   "kurma",
+		RequiredNamespaces: []string{"ipc", "mount", "pid", "uts"},
 		NetworkConfig: &kurmaNetworkConfig{
 			Interfaces: []*kurmaNetworkInterface{
 				&kurmaNetworkInterface{
