@@ -66,7 +66,8 @@ func (s *rpcServer) UploadImage(stream pb.Kurma_UploadImageServer) error {
 
 	r := pb.NewByteStreamReader(stream, packet)
 	s.log.Debug("Initializing container")
-	return s.manager.Create(pc.name, pc.imageManifest, r)
+	_, err = s.manager.Create(pc.name, pc.imageManifest, r)
+	return err
 }
 
 func (s *rpcServer) Destroy(ctx context.Context, in *pb.ContainerRequest) (*pb.None, error) {
