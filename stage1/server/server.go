@@ -39,7 +39,7 @@ func New(options *Options) *Server {
 // Start begins the server. It will return an error if starting the Server
 // fails, or return nil on success.
 func (s *Server) Start() error {
-	l, err := net.Listen("tcp", ":12311")
+	l, err := net.Listen("tcp", "127.0.0.1:12311")
 	if err != nil {
 		return err
 	}
