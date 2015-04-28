@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/apcera/kurma/cgroups"
 	kclient "github.com/apcera/kurma/stage2/client"
+	"github.com/apcera/kurma/util/cgroups"
 
 	_ "github.com/apcera/kurma/stage3"
 )

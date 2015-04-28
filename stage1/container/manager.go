@@ -7,8 +7,8 @@ import (
 	"io"
 	"sync"
 
-	"github.com/apcera/kurma/cgroups"
 	kschema "github.com/apcera/kurma/schema"
+	"github.com/apcera/kurma/util/cgroups"
 	"github.com/apcera/logray"
 	"github.com/apcera/util/uuid"
 	"github.com/appc/spec/schema"

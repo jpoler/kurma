@@ -8,10 +8,10 @@ import (
 	"os"
 	"sync"
 
-	"github.com/apcera/kurma/cgroups"
 	kschema "github.com/apcera/kurma/schema"
 	client2 "github.com/apcera/kurma/stage2/client"
 	client3 "github.com/apcera/kurma/stage3/client"
+	"github.com/apcera/kurma/util/cgroups"
 	"github.com/apcera/logray"
 	"github.com/apcera/util/envmap"
 	"github.com/appc/spec/schema"
