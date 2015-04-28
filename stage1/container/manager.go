@@ -103,7 +103,12 @@ func (manager *Manager) Validate(imageManifest *schema.ImageManifest) error {
 // reader as the source of the ACI.
 func (manager *Manager) Create(
 	name string, imageManifest *schema.ImageManifest, image io.ReadCloser,
-) *Container {
+) (*Container, error) {
+	// revalidate the image
+	if err := manager.Validate(imageManifest); err != nil {
+		return nil, err
+	}
+
 	// handle a blank name
 	if name == "" {
 		name = imageManifest.Name.String()
@@ -143,7 +148,7 @@ func (manager *Manager) Create(
 	// begin the startup sequence
 	container.start()
 
-	return container
+	return container, nil
 }
 
 // removes a child container from the Container Manager.
