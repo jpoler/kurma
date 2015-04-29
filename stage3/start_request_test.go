@@ -2,7 +2,7 @@
 
 // +build linux,cgo
 
-package stage3
+package stage3_test
 
 import (
 	"fmt"
@@ -42,13 +42,14 @@ func TestUnnamedStartRequest(t *testing.T) {
 	TestExpectSuccess(t, err)
 	TestEqual(t, reply, "REQUEST OK\n")
 	s1pid, tasks := waitTask(t, cgroup, sleep1, 5*time.Second)
-	TestEqual(t, len(tasks), 2)
+	TestEqual(t, len(tasks), 3)
+	_, _, _, ichildren := taskInfo(t, pid)
 
 	// Get the task information for the sleep process.
 	s1cmd, s1env, s1ppid, s1children := taskInfo(t, s1pid)
 	TestEqual(t, s1cmd, []string{"/bin/sleep", "60"})
 	TestEqual(t, s1env, []string{"KTEST=VTEST"})
-	TestEqual(t, s1ppid, pid)
+	TestEqual(t, s1ppid, ichildren[0])
 	TestEqual(t, s1children, []int{})
 
 	// Check the three normal file descriptors, 0 -> /dev/null, 1 -> stdout,
@@ -96,7 +97,7 @@ func TestUnnamedStartRequest(t *testing.T) {
 	s2cmd, s2env, s2ppid, s2children := taskInfo(t, s2pid)
 	TestEqual(t, s2cmd, []string{"/bin/sleep", "61"})
 	TestEqual(t, s2env, []string{"KTEST2=VTEST2", "KTEST3=VTEST3"})
-	TestEqual(t, s2ppid, pid)
+	TestEqual(t, s2ppid, ichildren[0])
 	TestEqual(t, s2children, []int{})
 
 	// Check the three normal file descriptors, 0 -> /dev/null, 1 -> stdout,
@@ -148,13 +149,14 @@ func TestNamedStartRequest(t *testing.T) {
 	TestExpectSuccess(t, err)
 	TestEqual(t, reply, "REQUEST OK\n")
 	s1pid, tasks := waitTask(t, cgroup, sleep1, 5*time.Second)
-	TestEqual(t, len(tasks), 2)
+	TestEqual(t, len(tasks), 3)
+	_, _, _, ichildren := taskInfo(t, pid)
 
 	// Get the task information for the sleep process.
 	s1cmd, s1env, s1ppid, s1children := taskInfo(t, s1pid)
 	TestEqual(t, s1cmd, []string{"/bin/sleep", "60"})
 	TestEqual(t, s1env, []string{"KTEST=VTEST"})
-	TestEqual(t, s1ppid, pid)
+	TestEqual(t, s1ppid, ichildren[0])
 	TestEqual(t, s1children, []int{})
 
 	// Check the three normal file descriptors, 0 -> /dev/null, 1 -> stdout,
@@ -200,7 +202,7 @@ func TestNamedStartRequest(t *testing.T) {
 	s2cmd, s2env, s2ppid, s2children := taskInfo(t, s2pid)
 	TestEqual(t, s2cmd, sleep2)
 	TestEqual(t, s2env, []string{"KTEST2=VTEST2", "KTEST3=VTEST3"})
-	TestEqual(t, s2ppid, pid)
+	TestEqual(t, s2ppid, ichildren[0])
 	TestEqual(t, s2children, []int{})
 
 	// Check the three normal file descriptors, 0 -> /dev/null, 1 -> stdout,

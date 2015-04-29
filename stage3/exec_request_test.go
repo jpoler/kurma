@@ -2,7 +2,7 @@
 
 // +build linux,cgo
 
-package stage3
+package stage3_test
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ func TestExecRequest(t *testing.T) {
 	TestRequiresRoot(t)
 
 	// Start the initd process.
-	cgroup, socket, _, _ := StartInitd(t)
+	cgroup, socket, _, pid := StartInitd(t)
 
 	// Make a request against the initd server.
 	dir := TempDir(t)
@@ -47,13 +47,13 @@ func TestExecRequest(t *testing.T) {
 	cmdline, env, ppid, children := taskInfo(t, sleepPid)
 	TestEqual(t, cmdline, []string{"/bin/sleep", "60"})
 	TestEqual(t, env, []string{"KTEST=VTEST"})
-	TestEqual(t, ppid, os.Getpid())
-	TestEqual(t, children, []int{tasks[1]})
+	TestEqual(t, ppid, pid)
+	TestEqual(t, children, []int{tasks[2]})
 
 	// Ensure correct child properties
-	_, t1env, t1ppid, t1children := taskInfo(t, tasks[1])
+	_, t1env, t1ppid, t1children := taskInfo(t, tasks[2])
 	TestEqual(t, t1env, []string{"INITD_DEBUG=1", "INITD_INTERCEPT=1", "INITD_SOCKET=" + socket})
-	TestEqual(t, t1ppid, tasks[0])
+	TestEqual(t, t1ppid, tasks[1])
 	TestEqual(t, t1children, []int{})
 
 	// Check the three normal file descriptors, 0 -> /dev/null, 1 -> stdout,

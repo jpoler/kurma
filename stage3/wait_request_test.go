@@ -2,7 +2,7 @@
 
 // +build linux,cgo
 
-package stage3
+package stage3_test
 
 import (
 	"io/ioutil"
@@ -23,6 +23,7 @@ func TestWaitRequest(t *testing.T) {
 
 	// Start the initd process.
 	cgroup, socket, log, pid := StartInitd(t)
+	_, _, _, ichildren := taskInfo(t, pid)
 
 	// Start a process with a start command that sleeps for
 	// some time. This way we can test the blocking behavior of
@@ -69,7 +70,7 @@ func TestWaitRequest(t *testing.T) {
 	Timeout(t, 5*time.Second, time.Second/100, func() bool {
 		tasks, err := cgroup.Tasks()
 		TestExpectSuccess(t, err)
-		return len(tasks) == 2
+		return len(tasks) == 3
 	})
 
 	// Verify that the wait routine has not stopped.
@@ -79,17 +80,17 @@ func TestWaitRequest(t *testing.T) {
 	// routine actually does stop.
 	tasks, err := cgroup.Tasks()
 	TestExpectSuccess(t, err)
-	TestEqual(t, len(tasks), 2)
-	if tasks[0] == pid {
-		syscall.Kill(tasks[1], syscall.SIGKILL)
+	TestEqual(t, len(tasks), 3)
+	if tasks[1] == ichildren[0] {
+		syscall.Kill(tasks[2], syscall.SIGKILL)
 	} else {
-		syscall.Kill(tasks[0], syscall.SIGKILL)
+		syscall.Kill(tasks[1], syscall.SIGKILL)
 	}
 
 	Timeout(t, 5*time.Second, time.Second/100, func() bool {
 		tasks, err := cgroup.Tasks()
 		TestExpectSuccess(t, err)
-		return len(tasks) == 1
+		return len(tasks) == 2
 	})
 
 	wg.Wait()
@@ -129,7 +130,7 @@ func TestWaitRequestDoesntBlockProcessesAreFinished(t *testing.T) {
 
 	tasks, err := cgroup.Tasks()
 	TestExpectSuccess(t, err)
-	TestEqual(t, len(tasks), 1)
+	TestEqual(t, len(tasks), 2)
 
 	var errWait error
 	var replyWait string

@@ -2,7 +2,7 @@
 
 // +build linux,cgo
 
-package stage3
+package stage3_test
 
 import (
 	"bytes"
@@ -18,8 +18,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apcera/continuum/instance_manager/container/cgroups"
-	"github.com/apcera/continuum/instance_manager/container/initd/clone"
+	"github.com/apcera/kurma/stage2/client"
+	"github.com/apcera/kurma/util/cgroups"
 	"github.com/apcera/util/uuid"
 
 	. "github.com/apcera/util/testtool"
@@ -131,19 +131,20 @@ func StartInitd(
 	TestRequiresRoot(t)
 	dir := TempDir(t)
 	socket = path.Join(dir, "socket")
-	cmd := clone.Command(os.Args[0])
-	cmd.NewIPCNamespace = true
-	cmd.NewNetworkNamespace = true
-	cmd.NewMountNamespace = true
-	cmd.NewPidNamespace = true
-	cmd.NewUTSNamespace = true
-	cmd.Env = []string{
-		"INITD_INTERCEPT=1",
-		"INITD_DEBUG=1",
-		fmt.Sprintf("INITD_SOCKET=%s", socket),
+	launcher := client.Launcher{
+		NewIPCNamespace:     true,
+		NewNetworkNamespace: true,
+		NewMountNamespace:   true,
+		NewPIDNamespace:     true,
+		NewUTSNamespace:     true,
+		Environment: []string{
+			"INITD_INTERCEPT=1",
+			"INITD_DEBUG=1",
+			fmt.Sprintf("INITD_SOCKET=%s", socket),
+		},
 	}
 	cgroup = makeCgroup(t)
-	cmd.TasksFiles = cgroup.TasksFiles()
+	launcher.Taskfiles = cgroup.TasksFiles()
 
 	// open a file for logging.
 	log = path.Join(dir, "log")
@@ -153,13 +154,13 @@ func StartInitd(
 	TestExpectSuccess(t, err)
 
 	// Setup the various file descriptors.
-	cmd.Stdout = logFile
-	cmd.Stderr = logFile
-	cmd.Stdin, err = os.Open("/dev/null")
+	launcher.Stdout = logFile
+	launcher.Stderr = logFile
+	launcher.Stdin, err = os.Open("/dev/null")
 	TestExpectSuccess(t, err)
-	err = cmd.Start()
+	process, err := launcher.Run(os.Args[0])
 	TestExpectSuccess(t, err)
-	pid = cmd.PID
+	pid = process.Pid
 	AddTestFinalizer(func() {
 		if !t.Failed() {
 			return

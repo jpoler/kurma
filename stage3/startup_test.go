@@ -2,7 +2,7 @@
 
 // +build linux,cgo
 
-package stage3
+package stage3_test
 
 import (
 	"io/ioutil"
@@ -26,7 +26,7 @@ func TestStartup(t *testing.T) {
 	// checking that only one process exists in the process group.
 	tasks, err := cgroup.Tasks()
 	TestExpectSuccess(t, err)
-	TestEqual(t, len(tasks), 1)
+	TestEqual(t, len(tasks), 2)
 
 	// Ensure that the socket file is opened.
 	Timeout(t, time.Second, time.Second/100, func() bool {

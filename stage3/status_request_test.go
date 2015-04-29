@@ -2,7 +2,7 @@
 
 // +build linux,cgo
 
-package stage3
+package stage3_test
 
 import (
 	"path"
@@ -25,8 +25,11 @@ func TestStatusRequest(t *testing.T) {
 	// Process tracking.
 	processes := make(map[string]int)
 	pidnames := make(map[int]string)
-	pidnames[pid] = "initd"
-	processes["initd"] = pid
+	_, _, _, ichildren := taskInfo(t, pid)
+	pidnames[pid] = "launcher"
+	pidnames[ichildren[0]] = "initd"
+	processes["launcher"] = pid
+	processes["initd"] = ichildren[0]
 
 	// A directory that we can use to drop stuff in.
 	dir := TempDir(t)
@@ -135,7 +138,7 @@ func TestStatusRequest(t *testing.T) {
 	Timeout(t, 2*time.Second, 100*time.Millisecond, func() bool {
 		tasks, err := cgroup.Tasks()
 		TestExpectSuccess(t, err)
-		return len(tasks) == 4
+		return len(tasks) == 5
 	})
 
 	// Verify the exit status are valid.
@@ -156,7 +159,7 @@ func TestStatusRequest(t *testing.T) {
 		// Expect 2 processes (sleep x 1 and initd)
 		tasks, err := cgroup.Tasks()
 		TestExpectSuccess(t, err)
-		return len(tasks) == 2
+		return len(tasks) == 3
 	})
 
 	// Verify the exit statuses are correct.
