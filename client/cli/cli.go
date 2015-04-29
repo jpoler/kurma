@@ -6,6 +6,9 @@ import (
 	"flag"
 	"fmt"
 	"strings"
+
+	// Include so godep properly finds it.
+	_ "github.com/apcera/util/terminal"
 )
 
 const (

@@ -39,6 +39,10 @@
 			"Rev": "f4b6a26dfcb00a424a8688ad1d779bf05d918c15"
 		},
 		{
+			"ImportPath": "github.com/apcera/util/terminal",
+			"Rev": "f4b6a26dfcb00a424a8688ad1d779bf05d918c15"
+		},
+		{
 			"ImportPath": "github.com/apcera/util/testtool",
 			"Rev": "f4b6a26dfcb00a424a8688ad1d779bf05d918c15"
 		},
