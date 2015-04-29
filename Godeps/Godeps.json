@@ -1,6 +1,9 @@
 {
 	"ImportPath": "github.com/apcera/kurma",
 	"GoVersion": "go1.4.2",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource",
@@ -10,6 +13,10 @@
 		{
 			"ImportPath": "github.com/apcera/logray",
 			"Rev": "73b489724483b658dd13c54ce9ec38ebc8b04831"
+		},
+		{
+			"ImportPath": "github.com/apcera/termtables",
+			"Rev": "17806ad1d668e1ef6de12dc79b49d2f6d4d852a2"
 		},
 		{
 			"ImportPath": "github.com/apcera/util/envmap",
@@ -29,6 +36,10 @@
 		},
 		{
 			"ImportPath": "github.com/apcera/util/tarhelper",
+			"Rev": "f4b6a26dfcb00a424a8688ad1d779bf05d918c15"
+		},
+		{
+			"ImportPath": "github.com/apcera/util/testtool",
 			"Rev": "f4b6a26dfcb00a424a8688ad1d779bf05d918c15"
 		},
 		{
@@ -52,6 +63,10 @@
 		{
 			"ImportPath": "github.com/coreos/go-semver/semver",
 			"Rev": "6fe83ccda8fb9b7549c9ab4ba47f47858bc950aa"
+		},
+		{
+			"ImportPath": "github.com/creack/termios/raw",
+			"Rev": "d60649a6c40aa68303e3d69e0423a1e7aedf4bbd"
 		},
 		{
 			"ImportPath": "github.com/golang/protobuf/proto",
