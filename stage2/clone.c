@@ -154,12 +154,12 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 	case -1:
 		error(1, errno, "fork");
 	case 0:
+		// create our proc mount and enter the new root
+		if (args->new_mount_namespace) {
+			DEBUG("Configuring /proc\n");
+			mountproc();
+		}
 		if (args->chroot) {
-			// create our proc mount and enter the new root
-			if (args->new_mount_namespace) {
-				DEBUG("Configuring /proc\n");
-				mountproc();
-			}
 			DEBUG("Chrooting into filesystem\n");
 			enterroot(args->privileged);
 		}
