@@ -2,18 +2,24 @@
 
 ### Short Term
 
-- [ ] Support working directory
-- [ ] Support volumes
-- [ ] Re-enable user namespace functionality
-- [ ] Implement hook calls
+- [ ] api: Implement remote API handling
+- [ ] cli: Add parameter for speciying a remote host to use
+- [ ] cli: Reduce copy of the grpc client creation in each command
+- [ ] cli: Implement sorting on container list
+- [ ] cli: Implement using container names or short UUIDs for commands
+- [ ] cli: Implement specifying the container name
+- [ ] stage1: Support volumes
+- [ ] stage1: Implement hook calls
+- [ ] stage1: Implement appc isolators for capabilities
+- [ ] stage1: Implement appc isolators for cgroups
+- [ ] stage1: Add resource allocation
+- [ ] stage1: Re-enable user namespace functionality
+- [ ] stage3: Updated User/Group username/uid handling to 0.6.0 spec
 - [ ] Review Manager/Container lock handling
-- [ ] Implement specifying the container name in the CLI
-- [ ] Implement appc isolators for capabilities
-- [ ] Implement appc isolators for cgroups
 - [ ] Look at a futex for protecting concurrent pivot_root calls.
-- [ ] Add resource allocation
-- [ ] Baseline validation of manifest before starting container
 - [ ] Metadata API support
+- [X] Baseline validation of manifest before starting container
+- [X] Support working directory
 - [X] Implement configuring disks
 - [X] Setup uid/gid look up in initd
 - [X] Implement ability to enter a container
