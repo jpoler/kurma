@@ -153,3 +153,25 @@ func formatDisk(device, fstype string) error {
 	}
 	return nil
 }
+
+// shouldFormatDisk determines whether we should format the disk based on its
+// configuration and current filesystem type.
+func shouldFormatDisk(diskConfig *kurmaDiskConfiguration, currentfstype string) bool {
+	// if no configured fstype is given, then no
+	if diskConfig.FsType == "" {
+		return false
+	}
+
+	// if format is set to false
+	if diskConfig.Format != nil && *diskConfig.Format == false {
+		return false
+	}
+
+	// if the current fstype matches the configured fstype
+	if currentfstype == diskConfig.FsType {
+		return false
+	}
+
+	// if here, then yes
+	return true
+}

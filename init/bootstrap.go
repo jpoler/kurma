@@ -203,6 +203,7 @@ func (r *runner) mountDisks() error {
 	for _, disk := range r.config.Disks {
 		device := util.ResolveDevice(disk.Device)
 		if device == "" {
+			r.log.Warnf("Unable to resolve device %q, skipping", disk.Device)
 			continue
 		}
 		fstype, _ := util.GetFsType(device)
@@ -210,18 +211,19 @@ func (r *runner) mountDisks() error {
 		// FIXME check fstype against currently supported types
 
 		// format it, if needed
-		if fstype == "" || fstype != disk.FsType {
+		if shouldFormatDisk(disk, fstype) {
 			r.log.Infof("Formatting disk %s to %s", device, disk.FsType)
 			if err := formatDisk(device, disk.FsType); err != nil {
 				r.log.Errorf("failed to format disk %q: %v", device, err)
 				continue
 			}
+			fstype = disk.FsType
 		}
 
 		// mount it
 		diskPath := filepath.Join(mountPath, strings.Replace(device, "/", "_", -1))
-		if err := handleMount(device, diskPath, disk.FsType, ""); err != nil {
-			r.log.Errorf("failed to mount disk: %v", err)
+		if err := handleMount(device, diskPath, fstype, ""); err != nil {
+			r.log.Errorf("failed to mount disk %q: %v", device, err)
 			continue
 		}
 
