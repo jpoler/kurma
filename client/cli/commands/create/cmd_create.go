@@ -14,7 +14,6 @@ import (
 
 	pb "github.com/apcera/kurma/stage1/client"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 )
 
 func init() {
@@ -48,25 +47,16 @@ func create(cmd *cli.Cmd) error {
 		return err
 	}
 
-	// dial the kurma server
-	conn, err := grpc.Dial("127.0.0.1:12311")
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	// Upload the manifest and start the creation
-	c := pb.NewKurmaClient(conn)
 	req := &pb.CreateRequest{
 		Manifest: manifest,
 	}
 
 	// trigger container creation then upload the ACI image
-	resp, err := c.Create(context.Background(), req)
+	resp, err := cmd.Client.Create(context.Background(), req)
 	if err != nil {
 		return err
 	}
-	stream, err := c.UploadImage(context.Background())
+	stream, err := cmd.Client.UploadImage(context.Background())
 	if err != nil {
 		return err
 	}

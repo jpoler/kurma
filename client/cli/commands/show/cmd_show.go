@@ -11,7 +11,6 @@ import (
 
 	pb "github.com/apcera/kurma/stage1/client"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 )
 
 func init() {
@@ -29,16 +28,9 @@ func cliShow(cmd *cli.Cmd) error {
 }
 
 func show(cmd *cli.Cmd) error {
-	conn, err := grpc.Dial("127.0.0.1:12311")
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
 	req := &pb.ContainerRequest{Uuid: cmd.Args[0]}
 
-	c := pb.NewKurmaClient(conn)
-	resp, err := c.Get(context.Background(), req)
+	resp, err := cmd.Client.Get(context.Background(), req)
 	if err != nil {
 		return err
 	}
