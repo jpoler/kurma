@@ -1,4 +1,4 @@
-// Copyright 2013-2014 Apcera Inc. All rights reserved.
+// Copyright 2013-2015 Apcera Inc. All rights reserved.
 
 package cli
 
@@ -12,6 +12,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	pb "github.com/apcera/kurma/stage1/client"
 )
 
 var PanicStack []byte
@@ -46,6 +48,10 @@ type Cmd struct {
 	// Args holds inputs for the named command.
 	// In typical use, both Name and Args are set by apc.
 	Args []string
+
+	// Client is the Kurma client that uses GrpcConn to communicate with the
+	// Kurma server.
+	Client pb.KurmaClient
 
 	errChan  chan error // Receives errors returned during execution
 	def      *cmdDef    // Command definition

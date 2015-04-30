@@ -12,7 +12,6 @@ import (
 
 	pb "github.com/apcera/kurma/stage1/client"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 )
 
 func init() {
@@ -38,17 +37,9 @@ func enter(cmd *cli.Cmd) error {
 	}
 	defer raw.TcSetAttr(os.Stdin.Fd(), termios)
 
-	// Call the server
-	conn, err := grpc.Dial("127.0.0.1:12311")
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
 	// Initialize the call and send the first packet so that it knows what
 	// container we're connecting to.
-	c := pb.NewKurmaClient(conn)
-	stream, err := c.Enter(context.Background())
+	stream, err := cmd.Client.Enter(context.Background())
 	if err != nil {
 		return err
 	}

@@ -14,11 +14,17 @@ import (
 	"github.com/apcera/kurma/client/cli"
 	"github.com/apcera/util/terminal"
 
+	pb "github.com/apcera/kurma/stage1/client"
+	"google.golang.org/grpc"
+
 	_ "github.com/apcera/kurma/client/cli/commands"
 )
 
 const (
 	ERROR_PREFIX = "Error: "
+
+	// TODO(alextoombs): allow override of the host IP via CLI parameter.
+	KurmaIPPort = "127.0.0.1:12311"
 )
 
 func main() {
@@ -99,6 +105,15 @@ func main() {
 		}
 		return
 	}
+
+	conn, err := grpc.Dial(KurmaIPPort)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, terminal.Colorize(terminal.ColorError, ERROR_PREFIX+"%s\n"), err.Error())
+		exitcode = 1
+		return
+	}
+	defer conn.Close()
+	cmd.Client = pb.NewKurmaClient(conn)
 
 	exitcode = runCommand(cmd)
 }

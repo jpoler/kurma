@@ -4,7 +4,6 @@
 
 - [ ] api: Implement remote API handling
 - [ ] cli: Add parameter for speciying a remote host to use
-- [ ] cli: Reduce copy of the grpc client creation in each command
 - [ ] cli: Implement sorting on container list
 - [ ] cli: Implement using container names or short UUIDs for commands
 - [ ] cli: Implement specifying the container name
