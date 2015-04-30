@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"runtime"
@@ -23,8 +24,7 @@ import (
 const (
 	ERROR_PREFIX = "Error: "
 
-	// TODO(alextoombs): allow override of the host IP via CLI parameter.
-	KurmaIPPort = "127.0.0.1:12311"
+	defaultKurmaPort = "12311"
 )
 
 func main() {
@@ -106,7 +106,7 @@ func main() {
 		return
 	}
 
-	conn, err := grpc.Dial(KurmaIPPort)
+	conn, err := grpc.Dial(net.JoinHostPort(cli.KurmaHost, defaultKurmaPort))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, terminal.Colorize(terminal.ColorError, ERROR_PREFIX+"%s\n"), err.Error())
 		exitcode = 1

@@ -1,4 +1,4 @@
-// Copyright 2013-2014 Apcera Inc. All rights reserved.
+// Copyright 2013-2015 Apcera Inc. All rights reserved.
 
 package cli
 
@@ -15,6 +15,7 @@ const (
 	defaultConfirmation = "Is this correct?"
 	askYes              = "Y/n"
 	askNo               = "y/N"
+	defaultKurmaIP      = "127.0.0.1"
 )
 
 var (
@@ -24,6 +25,9 @@ var (
 	VeryVerbose bool
 	// ShowVersion triggers the 'version' command when called.
 	ShowVersion bool
+
+	// KurmaHost is the host (ip or name) of the Kurma server we're talking to.
+	KurmaHost string
 
 	// global map of defined commands
 	apcCommands = make(map[string]cmdDef)
@@ -101,4 +105,6 @@ func addGlobalFlags(f *flag.FlagSet) {
 	f.BoolVar(&ShowVersion, "version", false, "")
 	f.BoolVar(&ShowVersion, "ver", false, "")
 	f.BoolVar(&ShowVersion, "v", false, "")
+	f.StringVar(&KurmaHost, "host", defaultKurmaIP, "")
+	f.StringVar(&KurmaHost, "H", defaultKurmaIP, "")
 }
