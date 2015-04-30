@@ -33,3 +33,15 @@ func TestParseCmdline(t *testing.T) {
 
 	tt.TestEqual(t, actual, expected)
 }
+
+func TestParseCmdLineKurmaConfig(t *testing.T) {
+	parsed := parseCmdline("kurma.modules=[e1000,mptsci] kurma.datasources=[ec2]")
+	config, err := uglyDoubleLoop(parsed)
+	tt.TestExpectSuccess(t, err)
+
+	expected := &kurmaConfig{
+		Modules:     []string{"e1000", "mptspi"},
+		Datasources: []string{"ec2"},
+	}
+	tt.TestEqual(t, config, expected)
+}

@@ -67,7 +67,6 @@ func defaultConfiguration() *kurmaConfig {
 			},
 			Udev: &kurmaGenericService{
 				Enabled: false,
-				ACI:     "file:///udev.aci",
 			},
 			Console: &kurmaConsoleService{
 				Enabled:  true,

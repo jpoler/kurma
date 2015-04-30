@@ -17,13 +17,13 @@ import (
 )
 
 func getConfigFromCmdline() *kurmaConfig {
-	b, err := ioutil.ReadFile("/proc/self/cmdline")
+	b, err := ioutil.ReadFile("/proc/cmdline")
 	if err != nil {
 		return nil
 	}
-	parsed := parseCmdline(string(b))
-
-	config, _ := uglyDoubleLoop(parsed)
+	str := strings.Trim(string(b), "\n")
+	parsed := parseCmdline(str)
+	config, err := uglyDoubleLoop(parsed)
 	return config
 }
 
