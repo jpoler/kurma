@@ -24,7 +24,8 @@ import (
 const (
 	ERROR_PREFIX = "Error: "
 
-	defaultKurmaPort = "12311"
+	defaultKurmaLocalPort  = "12311"
+	defaultKurmaRemotePort = "12312"
 )
 
 func main() {
@@ -106,7 +107,7 @@ func main() {
 		return
 	}
 
-	conn, err := grpc.Dial(net.JoinHostPort(cli.KurmaHost, defaultKurmaPort))
+	conn, err := grpc.Dial(determineKurmaHostPort())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, terminal.Colorize(terminal.ColorError, ERROR_PREFIX+"%s\n"), err.Error())
 		exitcode = 1
@@ -187,4 +188,13 @@ func reportPanic() error {
 
 	fmt.Fprintln(os.Stderr, string(cli.PanicStack))
 	return nil
+}
+
+func determineKurmaHostPort() string {
+	// quick check if it is referring to the local host
+	ip := net.ParseIP(cli.KurmaHost)
+	if ip != nil && ip.IsLoopback() {
+		return net.JoinHostPort(cli.KurmaHost, defaultKurmaLocalPort)
+	}
+	return net.JoinHostPort(cli.KurmaHost, defaultKurmaRemotePort)
 }
