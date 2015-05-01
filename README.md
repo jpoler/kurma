@@ -8,6 +8,11 @@ framework that allows containers to be managed and orchestrated in way beyond
 itself. It is built as a way of managing containers on a single host, but with
 an extensible API that could be built on top of to form a cluster of machines.
 
+### Building Kurma
+
+See the [KurmaOS Repo](https://github.com/apcera/kurmaos/blob/master/README.md#build-process)
+for instructions on how to build Kurma.
+
 ### Boot Process
 
 TBD
