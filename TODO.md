@@ -2,7 +2,6 @@
 
 ### Short Term
 
-- [ ] api: Implement remote API handling
 - [ ] cli: Add parameter for speciying a remote host to use
 - [ ] cli: Implement sorting on container list
 - [ ] cli: Implement using container names or short UUIDs for commands
@@ -17,6 +16,7 @@
 - [ ] Review Manager/Container lock handling
 - [ ] Look at a futex for protecting concurrent pivot_root calls.
 - [ ] Metadata API support
+- [X] api: Implement remote API handling
 - [X] Baseline validation of manifest before starting container
 - [X] Support working directory
 - [X] Implement configuring disks
