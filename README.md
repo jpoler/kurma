@@ -2,7 +2,7 @@
 
 Kurma is a next generation execution environment for a containerized host. Kurma is built on the notion that everything is a container.
 
-Kurma is more than just a container manager. Kurma is a operating system (OS) that allows containers to be managed and orchestrated by other processes. Kurma can be used to manage containers on a single host, and has an extensible API that can be used to create and manage containers across clusters of machines.
+Kurma is more than just a container manager. Kurma is an operating system that allows containers to be managed and orchestrated by other processes. Kurma can be used to manage containers on a single host, and has an extensible API that can be used to create and manage containers across clusters of machines.
 
 ### Building Kurma
 
@@ -61,3 +61,14 @@ included in a normal binary.
 The `stage3` subdirectory contains the code for the process that acts as the
 `init` within the container. This code exposes a simple text based RPC for the stage1
 process to communicate with it to have it execute commands or check status.
+
+## Related Repositories
+
+- [KurmaOS](https://github.com/apcera/kurmaos)
+- [Kurmaos-overlay](https://github.com/apcera/kurmaos-overlay)
+- [logray](https://github.com/apcera/logray)
+- [util](https://github.com/apcera/util)
+- [termtables](https://github.com/apcera/termtables)
+
+
+
