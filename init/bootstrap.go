@@ -15,11 +15,11 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/apcera/kurma/remote"
 	"github.com/apcera/kurma/stage1/container"
 	"github.com/apcera/kurma/stage1/server"
 	"github.com/apcera/kurma/util"
 	"github.com/apcera/logray"
+	"github.com/apcera/util/aciremote"
 	"github.com/apcera/util/proc"
 	"github.com/vishvananda/netlink"
 )
@@ -457,7 +457,7 @@ func (r *runner) startServer() error {
 func (r *runner) startInitContainers() error {
 	for _, img := range r.config.InitContainers {
 		func() {
-			f, err := remote.RetrieveImage(img)
+			f, err := aciremote.RetrieveImage(img, true)
 			if err != nil {
 				r.log.Errorf("Failed to retrieve image %q: %v", img, err)
 				return
@@ -492,7 +492,7 @@ func (r *runner) startUdev() error {
 		return nil
 	}
 
-	f, err := remote.RetrieveImage(r.config.Services.Udev.ACI)
+	f, err := aciremote.RetrieveImage(r.config.Services.Udev.ACI, true)
 	if err != nil {
 		r.log.Errorf("Failed to retrieve udev image: %v", err)
 		return nil
@@ -536,7 +536,7 @@ func (r *runner) startNTP() error {
 
 	r.log.Info("Updating system clock via NTP...")
 
-	f, err := remote.RetrieveImage(r.config.Services.NTP.ACI)
+	f, err := aciremote.RetrieveImage(r.config.Services.NTP.ACI, true)
 	if err != nil {
 		r.log.Errorf("Failed to retrieve console image: %v", err)
 		return nil
@@ -573,7 +573,7 @@ func (r *runner) startConsole() error {
 		return nil
 	}
 
-	f, err := remote.RetrieveImage(r.config.Services.Console.ACI)
+	f, err := aciremote.RetrieveImage(r.config.Services.Console.ACI, true)
 	if err != nil {
 		r.log.Errorf("Failed to retrieve console image: %v", err)
 		return nil

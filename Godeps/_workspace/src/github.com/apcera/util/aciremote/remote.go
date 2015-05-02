@@ -1,6 +1,6 @@
 // Copyright 2015 Apcera Inc. All rights reserved.
 
-package remote
+package aciremote
 
 import (
 	"fmt"
@@ -14,9 +14,10 @@ import (
 )
 
 // RetrieveImage can be used to retrieve a remote image, and optionally discover
-// an image based on the App Container Image Discovery specification.
-func RetrieveImage(imageurl string) (ReaderCloserSeeker, error) {
-	u, err := url.Parse(imageurl)
+// an image based on the App Container Image Discovery specification. Supports
+// handling local images as well as
+func RetrieveImage(imageUri string, insecure bool) (ReaderCloserSeeker, error) {
+	u, err := url.Parse(imageUri)
 	if err != nil {
 		return nil, err
 	}
@@ -27,52 +28,52 @@ func RetrieveImage(imageurl string) (ReaderCloserSeeker, error) {
 		return os.Open(u.Path)
 
 	case "http", "https":
-		// handle http retrievals, wrapped with a tempfile that cleans up
-		resp, err := http.Get(imageurl)
+		// Handle HTTP retrievals, wrapped with a tempfile that cleans up.
+		resp, err := http.Get(imageUri)
 		if err != nil {
 			return nil, err
 		}
 		defer resp.Body.Close()
 
-		// check the status code to ensure success
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("received HTTP status %d retrieving image %q", resp.StatusCode, imageurl)
+		switch resp.StatusCode {
+		case http.StatusOK:
+		default:
+			return nil, fmt.Errorf("HTTP %d on retrieving %q", imageUri)
 		}
 
 		return newTempReader(resp.Body)
 
 	case "":
-		app, err := discovery.NewAppFromString(imageurl)
+		app, err := discovery.NewAppFromString(imageUri)
 		if err != nil {
 			return nil, err
 		}
 
-		// FIXME make insecure=true optional via config
-		endpoints, _, err := discovery.DiscoverEndpoints(*app, true)
+		endpoints, _, err := discovery.DiscoverEndpoints(*app, insecure)
 		if err != nil {
 			return nil, err
 		}
 
 		for _, ep := range endpoints.ACIEndpoints {
-			r, err := RetrieveImage(ep.ACI)
+			r, err := RetrieveImage(ep.ACI, insecure)
 			if err != nil {
 				continue
 			}
 			return r, nil
 		}
-		return nil, fmt.Errorf("failed to find a valid image for %q", imageurl)
+		return nil, fmt.Errorf("failed to find a valid image for %q", imageUri)
 
 	default:
-		return nil, fmt.Errorf("%q scheme not implemented", u.Scheme)
+		return nil, fmt.Errorf("%q scheme not supported", u.Scheme)
 	}
 }
 
 // ReaderCloserSeeker is a generic interface for the functions common for images
-// that are reteived. Generally, Kurma will leverage Read, Close, and Seek. Seek
-// is important as it will run through the image to locate the manifest before
-// actually extracting it.
+// that are reteived. Seek is important as it will run through the image to
+// locate the ACI manifest before actually extracting it.
 type ReaderCloserSeeker interface {
 	io.ReadCloser
+
 	Seek(offset int64, whence int) (ret int64, err error)
 }
 
@@ -85,7 +86,7 @@ type tempFileReader struct {
 }
 
 func newTempReader(r io.Reader) (*tempFileReader, error) {
-	f, err := ioutil.TempFile(os.TempDir(), "kurma-retriever")
+	f, err := ioutil.TempFile(os.TempDir(), "remote-aci-tarfile")
 	if err != nil {
 		return nil, err
 	}
