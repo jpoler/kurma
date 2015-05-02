@@ -12,11 +12,11 @@ See the [KurmaOS Repo](https://github.com/apcera/kurmaos/blob/master/README.md#b
 
 The process for managing containers comprises three stages that are responsible for setting up and launching a containerized host.
 
-* Stage 1: This stage is responsible for configuring the filesystem that will 
-  comprise the container and gather all the dependencies. This stage should get 
+* Stage 1: This stage is responsible for configuring the filesystem that will
+  comprise the container and gather all the dependencies. This stage should get
   all the dependencies in place so the container is ready to be launched.
-* Stage 2: This stage takes care of launching the actual container. 
-  This stage takes care of creating the necessary kernel namespaces or joining existing ones, 
+* Stage 2: This stage takes care of launching the actual container.
+  This stage takes care of creating the necessary kernel namespaces or joining existing ones,
   and also joins any cgroups that are necessary.
 * Stage 3: After stage 2 is complete, stage 3 will `exec` the stage 3 binary which
   takes over inside the container and acts as an `init` process. It is used to
@@ -35,7 +35,8 @@ be where stage 3 is another chained process that configures networking before
 
 The `client` subdirectory represents the code for interacting with a Kurma
 host. Currently, it contains the command line interface which talks to a local
-Kurma daemon.
+Kurma daemon, and the remote API broker which allows external access from
+`kurma-cli` using the `-H` flag.
 
 #### stage1
 
@@ -69,6 +70,3 @@ process to communicate with it to have it execute commands or check status.
 - [logray](https://github.com/apcera/logray)
 - [util](https://github.com/apcera/util)
 - [termtables](https://github.com/apcera/termtables)
-
-
-
