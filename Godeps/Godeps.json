@@ -12,47 +12,47 @@
 		},
 		{
 			"ImportPath": "github.com/apcera/logray",
-			"Rev": "73b489724483b658dd13c54ce9ec38ebc8b04831"
+			"Rev": "9b80efb98957efc08a728197c395bed2fc9e9724"
 		},
 		{
 			"ImportPath": "github.com/apcera/termtables",
-			"Rev": "17806ad1d668e1ef6de12dc79b49d2f6d4d852a2"
+			"Rev": "6e7582e2da28cb5324ebfb9243d2617f0de93ee2"
 		},
 		{
 			"ImportPath": "github.com/apcera/util/aciremote",
-			"Rev": "a32119688b2b43e5b2c33a19e855c39e8f4fc940"
+			"Rev": "4fc1cbb365fda9e8673817fe6d23940f6fb0ae6a"
 		},
 		{
 			"ImportPath": "github.com/apcera/util/envmap",
-			"Rev": "a32119688b2b43e5b2c33a19e855c39e8f4fc940"
+			"Rev": "4fc1cbb365fda9e8673817fe6d23940f6fb0ae6a"
 		},
 		{
 			"ImportPath": "github.com/apcera/util/hashutil",
-			"Rev": "a32119688b2b43e5b2c33a19e855c39e8f4fc940"
+			"Rev": "4fc1cbb365fda9e8673817fe6d23940f6fb0ae6a"
 		},
 		{
 			"ImportPath": "github.com/apcera/util/proc",
-			"Rev": "a32119688b2b43e5b2c33a19e855c39e8f4fc940"
+			"Rev": "4fc1cbb365fda9e8673817fe6d23940f6fb0ae6a"
 		},
 		{
 			"ImportPath": "github.com/apcera/util/str",
-			"Rev": "a32119688b2b43e5b2c33a19e855c39e8f4fc940"
+			"Rev": "4fc1cbb365fda9e8673817fe6d23940f6fb0ae6a"
 		},
 		{
 			"ImportPath": "github.com/apcera/util/tarhelper",
-			"Rev": "a32119688b2b43e5b2c33a19e855c39e8f4fc940"
+			"Rev": "4fc1cbb365fda9e8673817fe6d23940f6fb0ae6a"
 		},
 		{
 			"ImportPath": "github.com/apcera/util/terminal",
-			"Rev": "a32119688b2b43e5b2c33a19e855c39e8f4fc940"
+			"Rev": "4fc1cbb365fda9e8673817fe6d23940f6fb0ae6a"
 		},
 		{
 			"ImportPath": "github.com/apcera/util/testtool",
-			"Rev": "a32119688b2b43e5b2c33a19e855c39e8f4fc940"
+			"Rev": "4fc1cbb365fda9e8673817fe6d23940f6fb0ae6a"
 		},
 		{
 			"ImportPath": "github.com/apcera/util/uuid",
-			"Rev": "a32119688b2b43e5b2c33a19e855c39e8f4fc940"
+			"Rev": "4fc1cbb365fda9e8673817fe6d23940f6fb0ae6a"
 		},
 		{
 			"ImportPath": "github.com/appc/spec/discovery",

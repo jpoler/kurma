@@ -1,0 +1,17 @@
+{
+	"ImportPath": "github.com/apcera/util/tarhelper",
+	"GoVersion": "go1.4.1",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/apcera/logray",
+			"Rev": "73b489724483b658dd13c54ce9ec38ebc8b04831"
+		},
+		{
+			"ImportPath": "github.com/remyoudompheng/go-liblzma",
+			"Rev": "e592d11004fad5273ee038602d775382a6dffeec"
+		}
+	]
+}

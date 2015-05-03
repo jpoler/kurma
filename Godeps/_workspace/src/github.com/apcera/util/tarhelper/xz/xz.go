@@ -7,8 +7,8 @@ import (
 	"bytes"
 	"io"
 
-	xz "github.com/apcera/cntm-deps/go-liblzma"
 	"github.com/apcera/util/tarhelper"
+	xz "github.com/remyoudompheng/go-liblzma"
 )
 
 func init() {
