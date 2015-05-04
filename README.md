@@ -8,6 +8,10 @@ Kurma is more than just a container manager. Kurma is an operating system that a
 
 See the [KurmaOS Repo](https://github.com/apcera/kurmaos/blob/master/README.md#build-process) for instructions on how to build Kurma.
 
+### Downloading Kurma
+
+The latest release images can be found under [Releases](https://github.com/apcera/kurma/releases).
+
 ### Container Process
 
 The process for managing containers comprises three stages that are responsible for setting up and launching a containerized host.
