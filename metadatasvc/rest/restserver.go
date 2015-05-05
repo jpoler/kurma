@@ -55,17 +55,6 @@ func (rs *server) Listen() error {
 	return http.ListenAndServe(":8080", rs.router)
 }
 
-func helloWorld(res http.ResponseWriter, req *http.Request) {
-	vars := mux.Vars(req)
-	res.Write([]byte("Hello World!\n"))
-	b, e := json.Marshal(vars)
-	if e != nil {
-		panic("Derp")
-	}
-
-	res.Write(b)
-}
-
 func (rs *server) podAnnotations(res http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	token := vars["token"]
@@ -198,9 +187,14 @@ func (rs *server) sign(res http.ResponseWriter, req *http.Request) {
 	content := req.PostForm.Get("content")
 	if content == "" {
 		http.Error(res, "No content", http.StatusNoContent)
+		return
 	}
 
-	signature := rs.store.Sign(token, content)
+	signature, err := rs.store.Sign(token, content)
+	if err != nil {
+		http.Error(res, "Error", http.StatusInternalServerError)
+		return
+	}
 	res.Write([]byte(signature))
 }
 
