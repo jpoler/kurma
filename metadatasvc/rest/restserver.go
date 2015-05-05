@@ -6,6 +6,8 @@ import (
 
 	"github.com/apcera/kurma/metadatasvc/backend"
 	"github.com/gorilla/mux"
+
+	"github.com/appc/spec/schema/types"
 )
 
 type server struct {
@@ -32,18 +34,18 @@ func NewRestServer(store backend.Backend) Server {
 		Subrouter()
 
 	pmr := router.PathPrefix("/acMetadata/v1/pod").Subrouter()
-	pmr.HandleFunc("/annotations/", helloWorld)
-	pmr.HandleFunc("/manifest", helloWorld)
-	pmr.HandleFunc("/uuid", helloWorld)
+	pmr.HandleFunc("/annotations/", s.podAnnotations)
+	pmr.HandleFunc("/manifest", s.podManifest)
+	pmr.HandleFunc("/uuid", s.podUUID)
 
 	amr := router.PathPrefix("/acMetadata/v1/apps/{appName}/").Subrouter()
 	amr.HandleFunc("/annotations/", s.appAnnotations)
 	amr.HandleFunc("/image/manifest", s.appImageManifest)
 	amr.HandleFunc("/image/id", s.appImageID)
 
-	ier := pmr.PathPrefix("/hmac").Subrouter()
-	ier.HandleFunc("/sign", helloWorld)
-	ier.HandleFunc("/verify", helloWorld)
+	ier := pmr.PathPrefix("/hmac").Methods("POST").Subrouter()
+	ier.HandleFunc("/sign", s.sign)
+	ier.HandleFunc("/verify", s.verify)
 
 	return s
 }
@@ -64,20 +66,102 @@ func helloWorld(res http.ResponseWriter, req *http.Request) {
 	res.Write(b)
 }
 
+func (rs *server) podAnnotations(res http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	token := vars["token"]
+
+	pod := rs.store.GetPod(token)
+	if pod == nil {
+		http.Error(res, "Unable to find pod", http.StatusNotFound)
+		return
+	}
+
+	b, err := json.Marshal(pod.Annotations)
+	if err != nil {
+		http.Error(res, "Unable to do stuff.", http.StatusInternalServerError)
+	}
+
+	res.Write(b)
+
+}
+
+func (rs *server) podManifest(res http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	token := vars["token"]
+
+	pod := rs.store.GetPod(token)
+	if pod == nil {
+		http.Error(res, "Unable to find pod", http.StatusNotFound)
+		return
+	}
+
+	b, err := pod.MarshalJSON()
+	if err != nil {
+		http.Error(res, "Unable to do stuff.", http.StatusInternalServerError)
+	}
+
+	res.Write(b)
+}
+
+func (rs *server) podUUID(res http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	token := vars["token"]
+
+	podUUID, err := rs.store.GetPodUUID(token)
+	if err != nil {
+		http.Error(res, "Unable to find pod", http.StatusNotFound)
+		return
+	}
+
+	res.Write([]byte(podUUID))
+}
+
 func (rs *server) appAnnotations(res http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	token := vars["token"]
 	appName := vars["appName"]
 
-	app := rs.store.GetAppDefinition()
+	pod := rs.store.GetPod(token)
+	if pod == nil {
+		http.Error(res, "Unable to find pod", http.StatusNotFound)
+		return
+	}
+
+	app := pod.Apps.Get(types.ACName(appName))
+	if app == nil {
+		http.Error(res, "Unable to find app", http.StatusNotFound)
+		return
+	}
+
+	b, err := json.Marshal(app.Annotations)
+	if err != nil {
+		http.Error(res, "Unable to do stuff.", http.StatusInternalServerError)
+	}
+
+	res.Write(b)
+
 }
 
 func (rs *server) appImageManifest(res http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-	res.Write([]byte("Hello World!\n"))
-	b, e := json.Marshal(vars)
-	if e != nil {
-		panic("Derp")
+	token := vars["token"]
+	appName := vars["appName"]
+
+	pod := rs.store.GetPod(token)
+	if pod == nil {
+		http.Error(res, "Unable to find pod", http.StatusNotFound)
+		return
+	}
+
+	app := pod.Apps.Get(types.ACName(appName))
+	if app == nil {
+		http.Error(res, "Unable to find app", http.StatusNotFound)
+		return
+	}
+
+	b, err := json.Marshal(app.Image)
+	if err != nil {
+		http.Error(res, "Unable to do stuff.", http.StatusInternalServerError)
 	}
 
 	res.Write(b)
@@ -85,11 +169,64 @@ func (rs *server) appImageManifest(res http.ResponseWriter, req *http.Request) {
 
 func (rs *server) appImageID(res http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-	res.Write([]byte("Hello World!\n"))
-	b, e := json.Marshal(vars)
-	if e != nil {
-		panic("Derp")
+	token := vars["token"]
+	appName := vars["appName"]
+
+	pod := rs.store.GetPod(token)
+	if pod == nil {
+		http.Error(res, "Unable to find pod", http.StatusNotFound)
+		return
 	}
 
-	res.Write(b)
+	app := pod.Apps.Get(types.ACName(appName))
+	if app == nil {
+		http.Error(res, "Unable to find app", http.StatusNotFound)
+		return
+	}
+
+	res.Write([]byte(app.Image.ID.String()))
+}
+
+func (rs *server) sign(res http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	token := vars["token"]
+
+	if err := req.ParseForm(); err != nil {
+		http.Error(res, "Invalid form", http.StatusBadRequest)
+	}
+
+	content := req.PostForm.Get("content")
+	if content == "" {
+		http.Error(res, "No content", http.StatusNoContent)
+	}
+
+	signature := rs.store.Sign(token, content)
+	res.Write([]byte(signature))
+}
+
+func (rs *server) verify(res http.ResponseWriter, req *http.Request) {
+	if err := req.ParseForm(); err != nil {
+		http.Error(res, "Invalid form", http.StatusBadRequest)
+	}
+
+	content := req.PostForm.Get("content")
+
+	if content == "" {
+		http.Error(res, "No content", http.StatusBadRequest)
+	}
+	signature := req.PostForm.Get("signature")
+
+	if signature == "" {
+		http.Error(res, "No signature", http.StatusBadRequest)
+	}
+
+	uuid := req.PostForm.Get("uuid")
+	if uuid == "" {
+		http.Error(res, "No UUID", http.StatusBadRequest)
+	}
+
+	err := rs.store.Verify(content, signature, uuid)
+	if err != nil {
+		http.Error(res, "Invalid signature", http.StatusForbidden)
+	}
 }

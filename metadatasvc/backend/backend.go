@@ -1,33 +1,51 @@
 package backend
 
 import (
+	"crypto/hmac"
+	"crypto/sha512"
+	"encoding/base64"
 	"errors"
 	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/appc/spec/schema"
-	"github.com/appc/spec/schema/types"
+)
+
+var (
+	ErrInvalidUUID      = errors.New("invalid uuid")
+	ErrInvalidToken     = errors.New("invalid token")
+	ErrInvalidSignature = errors.New("invalid HMAC signature")
 )
 
 type Backend interface {
-	Sign(content, token string) (string, error)
+	Sign(token, content string) (string, error)
 	Verify(content, signature, uuid string) error
 	RegisterPod(uuid string, manifest []byte, hmacKey string) (string, error)
 	UnregisterPod(uuid string) error
-	GetAppDefinition(token string, appName string) *schema.RuntimeApp
+	GetPod(token string) *schema.PodManifest
+	GetPodUUID(token string) (string, error)
+}
+
+type podData struct {
+	Manifest *schema.PodManifest
+	HMACKey  string
+	UUID     string
 }
 
 type backend struct {
 	sync.RWMutex
+	randGen      *rand.Rand
 	tokensByUUID map[string]string
-	podsByToken  map[string]*schema.PodManifest
+	podsByToken  map[string]*podData
 }
 
 // NewBackend ...
 func NewBackend() Backend {
 	var b Backend = &backend{
 		tokensByUUID: make(map[string]string),
-		podsByToken:  make(map[string]*schema.PodManifest),
+		podsByToken:  make(map[string]*podData),
+		randGen:      rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	return b
 }
@@ -45,9 +63,17 @@ func (b *backend) registerPod(uuid string, manifest []byte, hmacKey string) (str
 	if err != nil {
 		return "", err
 	}
-	token := makeToken()
+	token := b.makeToken()
 
-	b.podsByToken[token] = podDef
+	if hmacKey == "" {
+		hmacKey = b.makeToken()
+	}
+
+	b.podsByToken[token] = &podData{
+		Manifest: podDef,
+		HMACKey:  hmacKey,
+		UUID:     uuid,
+	}
 	b.tokensByUUID[uuid] = token
 
 	return token, nil
@@ -71,43 +97,66 @@ func (b *backend) unregisterPod(uuid string) error {
 	return nil
 }
 
-var letters = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+var letters = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")
 
-func makeToken() string {
-	b := make([]rune, 26) // ~155 bits of entropy
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+func (b *backend) makeToken() string {
+	tokenRunes := make([]rune, 26) // ~155 bits of entropy
+	for i := range tokenRunes {
+		tokenRunes[i] = letters[b.randGen.Intn(len(letters))]
 	}
 
-	return string(b)
+	return string(tokenRunes)
 }
 
-// App Stuff
-func (b *backend) GetAppDefinition(token string, appName string) *schema.RuntimeApp {
+// GetPod ..
+func (b *backend) GetPod(token string) *schema.PodManifest {
 	b.RLock()
 	defer b.RUnlock()
-	return b.getAppDefinition(token, appName)
+	return b.getPod(token)
 }
 
-func (b *backend) getAppDefinition(token string, appName string) *schema.RuntimeApp {
+func (b *backend) getPod(token string) *schema.PodManifest {
 	pod, ok := b.podsByToken[token]
 	if !ok {
 		return nil
 	}
-	return pod.Apps.Get(types.ACName(appName))
+
+	return pod.Manifest
 }
 
-// Identity  stuff
-
-// Sign ...
-func (b *backend) Sign(content, token string) (string, error) {
+// GetPodUUID ..
+func (b *backend) GetPodUUID(token string) (string, error) {
 	b.RLock()
 	defer b.RUnlock()
-	return b.sign(content, token)
+	return b.getPodUUID(token)
 }
 
-func (b *backend) sign(content, token string) (string, error) {
-	return "", nil
+func (b *backend) getPodUUID(token string) (string, error) {
+	pod, ok := b.podsByToken[token]
+	if !ok {
+		return "", ErrInvalidToken
+	}
+
+	return pod.UUID, nil
+}
+
+// Sign ...
+func (b *backend) Sign(token, content string) (string, error) {
+	b.RLock()
+	defer b.RUnlock()
+	return b.sign(token, content)
+}
+
+func (b *backend) sign(token, content string) (string, error) {
+	pod, ok := b.podsByToken[token]
+	if !ok {
+		return "", ErrInvalidToken
+	}
+
+	hash := hmac.New(sha512.New, []byte(pod.HMACKey))
+	hash.Write([]byte(content))
+	out := base64.StdEncoding.EncodeToString(hash.Sum(nil))
+	return out, nil
 }
 
 // Verify ...
@@ -118,5 +167,28 @@ func (b *backend) Verify(content, signature, uuid string) error {
 }
 
 func (b *backend) verify(content, signature, uuid string) error {
+	token, ok := b.tokensByUUID[uuid]
+	if !ok {
+		return ErrInvalidUUID
+	}
+
+	pod, ok := b.podsByToken[token]
+	if !ok {
+		return ErrInvalidToken
+	}
+
+	// Encode
+	hmacEncoded := hmac.New(sha512.New, []byte(pod.HMACKey))
+	hmacEncoded.Write([]byte(content))
+	// Decode
+	decodedSig, err := base64.StdEncoding.DecodeString(signature)
+	if err != nil {
+		return err
+	}
+
+	if !hmac.Equal(decodedSig, hmacEncoded.Sum(nil)) {
+		return ErrInvalidSignature
+	}
+
 	return nil
 }

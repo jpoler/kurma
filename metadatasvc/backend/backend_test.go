@@ -123,17 +123,29 @@ var testManifest = `
     ]
 }`
 
-func TestGetManifest(t *testing.T) {
+func TestBackend(t *testing.T) {
 	var testBackend = NewBackend()
+	var testUUID = "abcd-efgh-ijkl-mnop"
 
-	token, err := testBackend.RegisterPod("abcd-efgh-ijkl-mnop", []byte(testManifest), "")
+	token, err := testBackend.RegisterPod(testUUID, []byte(testManifest), "")
 	if err != nil {
 		t.Fatalf("Failed to register pod: %v", err)
 	}
 
-	appDef := testBackend.GetAppDefinition(token, "backup")
+	appDef := testBackend.GetPod(token)
 	if appDef == nil {
 		t.Fatal("Failed to obtain app manifest")
 	}
 
+	testData := "Some test data"
+	signature, err := testBackend.Sign(token, testData)
+	if err != nil {
+		t.Fatalf("Failed to sign message: %v", err)
+	}
+
+	if err := testBackend.Verify(testData, signature, testUUID); err != nil {
+		t.Fatal("Failed to verify signed message: %v", err)
+	}
+
+	testBackend.UnregisterPod(testUUID)
 }
