@@ -1,55 +1,89 @@
-package metadatasvc
+package rest
 
 import (
 	"encoding/json"
 	"net/http"
 
-	backend "github.com/apcera/kurma/metadatasvc/backend"
+	"github.com/apcera/kurma/metadatasvc/backend"
 	"github.com/gorilla/mux"
 )
 
-type restServer struct {
+type server struct {
 	router *mux.Router
+	store  backend.Backend
 }
 
-// RestServer ...
-type RestServer interface {
+// Server ...
+type Server interface {
 	Listen() error
 }
 
-// NewRestServer ...
-func NewRestServer(backend.Backend) RestServer {
+// NewServer ...
+func NewRestServer(store backend.Backend) Server {
 	rootRouter := mux.NewRouter()
 
-	router := rootRouter.Headers("Metadata-Flavor", "AppContainer").
-		PathPrefix("/{id}/").
-		Subrouter()
+	s := &server{
+		router: rootRouter,
+		store:  store,
+	}
 
-	amr := router.PathPrefix("/acMetadata/v1/apps/{appName}/").Subrouter()
-	amr.HandleFunc("/annotations/", helloWorld)
-	amr.HandleFunc("/manifest", helloWorld)
-	amr.HandleFunc("/uuid", helloWorld)
+	router := rootRouter.
+		PathPrefix("/{token}/").
+		Subrouter()
 
 	pmr := router.PathPrefix("/acMetadata/v1/pod").Subrouter()
 	pmr.HandleFunc("/annotations/", helloWorld)
-	pmr.HandleFunc("/image/manifest", helloWorld)
-	pmr.HandleFunc("/image/id", helloWorld)
+	pmr.HandleFunc("/manifest", helloWorld)
+	pmr.HandleFunc("/uuid", helloWorld)
+
+	amr := router.PathPrefix("/acMetadata/v1/apps/{appName}/").Subrouter()
+	amr.HandleFunc("/annotations/", s.appAnnotations)
+	amr.HandleFunc("/image/manifest", s.appImageManifest)
+	amr.HandleFunc("/image/id", s.appImageID)
 
 	ier := pmr.PathPrefix("/hmac").Subrouter()
 	ier.HandleFunc("/sign", helloWorld)
 	ier.HandleFunc("/verify", helloWorld)
 
-	return &restServer{
-		router: rootRouter,
-	}
+	return s
 }
 
 // Listen ...
-func (rs *restServer) Listen() error {
+func (rs *server) Listen() error {
 	return http.ListenAndServe(":8080", rs.router)
 }
 
 func helloWorld(res http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	res.Write([]byte("Hello World!\n"))
+	b, e := json.Marshal(vars)
+	if e != nil {
+		panic("Derp")
+	}
+
+	res.Write(b)
+}
+
+func (rs *server) appAnnotations(res http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	token := vars["token"]
+	appName := vars["appName"]
+
+	app := rs.store.GetAppDefinition()
+}
+
+func (rs *server) appImageManifest(res http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	res.Write([]byte("Hello World!\n"))
+	b, e := json.Marshal(vars)
+	if e != nil {
+		panic("Derp")
+	}
+
+	res.Write(b)
+}
+
+func (rs *server) appImageID(res http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	res.Write([]byte("Hello World!\n"))
 	b, e := json.Marshal(vars)

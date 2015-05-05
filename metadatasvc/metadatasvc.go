@@ -3,9 +3,9 @@ package metadatasvc
 import (
 	"sync"
 
-	backend "github.com/apcera/kurma/metadatasvc/backend"
+	"github.com/apcera/kurma/metadatasvc/backend"
 	"github.com/apcera/kurma/metadatasvc/grpc"
-	rest "github.com/apcera/kurma/metadatasvc/rest"
+	"github.com/apcera/kurma/metadatasvc/rest"
 )
 
 // MetadataService does stuff.
@@ -15,8 +15,8 @@ type MetadataService interface {
 
 type metadataService struct {
 	backend backend.Backend
-	grpc    grpc.GrpcServer
-	rest    rest.RestServer
+	grpc    grpc.Server
+	rest    rest.Server
 }
 
 func NewMetadataService() MetadataService {

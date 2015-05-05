@@ -3,7 +3,7 @@ package grpc
 import (
 	"net"
 
-	backend "github.com/apcera/kurma/metadatasvc/backend"
+	"github.com/apcera/kurma/metadatasvc/backend"
 	"github.com/apcera/kurma/metadatasvc/protocol"
 
 	"golang.org/x/net/context"
@@ -11,23 +11,23 @@ import (
 )
 
 // GrpcServer ...
-type GrpcServer interface {
+type Server interface {
 	Listen() error
 }
 
-type grpcServer struct {
+type server struct {
 	server *grpc.Server
 	store  backend.Backend
 }
 
 // NewGrpcServer ...
-func NewGrpcServer(store backend.Backend) GrpcServer {
-	kms := &grpcServer{store: store, server: grpc.NewServer()}
+func NewGrpcServer(store backend.Backend) Server {
+	kms := &server{store: store, server: grpc.NewServer()}
 	protocol.RegisterKurmaMetadataServer(kms.server, kms)
 	return kms
 }
 
-func (gs *grpcServer) Listen() error {
+func (gs *server) Listen() error {
 	lis, err := net.Listen("unix", "socket")
 	if err != nil {
 		return err
@@ -36,10 +36,16 @@ func (gs *grpcServer) Listen() error {
 	return gs.server.Serve(lis)
 }
 
-func (gs *grpcServer) RegisterPod(context.Context, *protocol.PodDefinition) (*protocol.Response, error) {
-	return nil, nil
+func (gs *server) RegisterPod(c context.Context, pd *protocol.PodDefinition) (*protocol.RegisterResponse, error) {
+	token, err := gs.store.RegisterPod(pd.GetID().UUID, pd.PodManifest, pd.HMACKey)
+	if err != nil {
+		return nil, err
+	}
+	return &protocol.RegisterResponse{
+		URL: token, // TODO: Fix this.  Backend needs to give me a token
+	}, nil
 }
 
-func (gs *grpcServer) UnregisterPod(context.Context, *protocol.PodID) (*protocol.Response, error) {
+func (gs *server) UnregisterPod(c context.Context, podID *protocol.PodID) (*protocol.UnregisterResponse, error) {
 	return nil, nil
 }

@@ -11,7 +11,8 @@ It is generated from these files:
 It has these top-level messages:
 	PodDefinition
 	PodID
-	Response
+	RegisterResponse
+	UnregisterResponse
 */
 package protocol
 
@@ -32,7 +33,7 @@ var _ = proto.Marshal
 // The request message containing the user's name.
 type PodDefinition struct {
 	ID          *PodID `protobuf:"bytes,1,opt" json:"ID,omitempty"`
-	PodManifest string `protobuf:"bytes,2,opt" json:"PodManifest,omitempty"`
+	PodManifest []byte `protobuf:"bytes,2,opt,proto3" json:"PodManifest,omitempty"`
 	HMACKey     string `protobuf:"bytes,3,opt" json:"HMACKey,omitempty"`
 }
 
@@ -55,13 +56,21 @@ func (m *PodID) Reset()         { *m = PodID{} }
 func (m *PodID) String() string { return proto.CompactTextString(m) }
 func (*PodID) ProtoMessage()    {}
 
-type Response struct {
-	Status int32 `protobuf:"varint,1,opt" json:"Status,omitempty"`
+type RegisterResponse struct {
+	URL string `protobuf:"bytes,1,opt" json:"URL,omitempty"`
 }
 
-func (m *Response) Reset()         { *m = Response{} }
-func (m *Response) String() string { return proto.CompactTextString(m) }
-func (*Response) ProtoMessage()    {}
+func (m *RegisterResponse) Reset()         { *m = RegisterResponse{} }
+func (m *RegisterResponse) String() string { return proto.CompactTextString(m) }
+func (*RegisterResponse) ProtoMessage()    {}
+
+type UnregisterResponse struct {
+	Code int32 `protobuf:"varint,1,opt,name=code" json:"code,omitempty"`
+}
+
+func (m *UnregisterResponse) Reset()         { *m = UnregisterResponse{} }
+func (m *UnregisterResponse) String() string { return proto.CompactTextString(m) }
+func (*UnregisterResponse) ProtoMessage()    {}
 
 func init() {
 }
@@ -70,8 +79,8 @@ func init() {
 
 type KurmaMetadataClient interface {
 	// Sends a greeting
-	RegisterPod(ctx context.Context, in *PodDefinition, opts ...grpc.CallOption) (*Response, error)
-	UnregisterPod(ctx context.Context, in *PodID, opts ...grpc.CallOption) (*Response, error)
+	RegisterPod(ctx context.Context, in *PodDefinition, opts ...grpc.CallOption) (*RegisterResponse, error)
+	UnregisterPod(ctx context.Context, in *PodID, opts ...grpc.CallOption) (*UnregisterResponse, error)
 }
 
 type kurmaMetadataClient struct {
@@ -82,8 +91,8 @@ func NewKurmaMetadataClient(cc *grpc.ClientConn) KurmaMetadataClient {
 	return &kurmaMetadataClient{cc}
 }
 
-func (c *kurmaMetadataClient) RegisterPod(ctx context.Context, in *PodDefinition, opts ...grpc.CallOption) (*Response, error) {
-	out := new(Response)
+func (c *kurmaMetadataClient) RegisterPod(ctx context.Context, in *PodDefinition, opts ...grpc.CallOption) (*RegisterResponse, error) {
+	out := new(RegisterResponse)
 	err := grpc.Invoke(ctx, "/protocol.KurmaMetadata/RegisterPod", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -91,8 +100,8 @@ func (c *kurmaMetadataClient) RegisterPod(ctx context.Context, in *PodDefinition
 	return out, nil
 }
 
-func (c *kurmaMetadataClient) UnregisterPod(ctx context.Context, in *PodID, opts ...grpc.CallOption) (*Response, error) {
-	out := new(Response)
+func (c *kurmaMetadataClient) UnregisterPod(ctx context.Context, in *PodID, opts ...grpc.CallOption) (*UnregisterResponse, error) {
+	out := new(UnregisterResponse)
 	err := grpc.Invoke(ctx, "/protocol.KurmaMetadata/UnregisterPod", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -104,8 +113,8 @@ func (c *kurmaMetadataClient) UnregisterPod(ctx context.Context, in *PodID, opts
 
 type KurmaMetadataServer interface {
 	// Sends a greeting
-	RegisterPod(context.Context, *PodDefinition) (*Response, error)
-	UnregisterPod(context.Context, *PodID) (*Response, error)
+	RegisterPod(context.Context, *PodDefinition) (*RegisterResponse, error)
+	UnregisterPod(context.Context, *PodID) (*UnregisterResponse, error)
 }
 
 func RegisterKurmaMetadataServer(s *grpc.Server, srv KurmaMetadataServer) {

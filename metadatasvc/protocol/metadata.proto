@@ -7,16 +7,14 @@ package protocol;
 // The greeter service definition.
 service KurmaMetadata {
   // Sends a greeting
-  rpc RegisterPod (PodDefinition) returns (Response) {}
-  rpc UnregisterPod (PodID) returns (Response) {}
+  rpc RegisterPod (PodDefinition) returns (RegisterResponse) {}
+  rpc UnregisterPod (PodID) returns (UnregisterResponse) {}
 }
 
 // The request message containing the user's name.
 message PodDefinition {
 	PodID ID = 1;
-
-	string PodManifest = 2;
-
+	bytes PodManifest = 2;
 	optional string HMACKey = 3;
 }
 
@@ -24,6 +22,10 @@ message PodID {
 	string UUID = 1;
 }
 
-message Response {
-	int32 Status = 1;
+message RegisterResponse {
+	string URL = 1;
+}
+
+message UnregisterResponse {
+	int32 code = 1;
 }
