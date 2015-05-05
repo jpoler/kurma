@@ -42,10 +42,14 @@ func (gs *server) RegisterPod(c context.Context, pd *protocol.PodDefinition) (*p
 		return nil, err
 	}
 	return &protocol.RegisterResponse{
-		URL: token, // TODO: Fix this.  Backend needs to give me a token
+		Token: token,
 	}, nil
 }
 
 func (gs *server) UnregisterPod(c context.Context, podID *protocol.PodID) (*protocol.UnregisterResponse, error) {
-	return nil, nil
+	err := gs.store.UnregisterPod(podID.UUID)
+	if err != nil {
+		return nil, err
+	}
+	return &protocol.UnregisterResponse{StatusCode: 200}, nil
 }

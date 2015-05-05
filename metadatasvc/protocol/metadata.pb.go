@@ -57,7 +57,7 @@ func (m *PodID) String() string { return proto.CompactTextString(m) }
 func (*PodID) ProtoMessage()    {}
 
 type RegisterResponse struct {
-	URL string `protobuf:"bytes,1,opt" json:"URL,omitempty"`
+	Token string `protobuf:"bytes,1,opt" json:"Token,omitempty"`
 }
 
 func (m *RegisterResponse) Reset()         { *m = RegisterResponse{} }
@@ -65,7 +65,7 @@ func (m *RegisterResponse) String() string { return proto.CompactTextString(m) }
 func (*RegisterResponse) ProtoMessage()    {}
 
 type UnregisterResponse struct {
-	Code int32 `protobuf:"varint,1,opt,name=code" json:"code,omitempty"`
+	StatusCode int32 `protobuf:"varint,1,opt" json:"StatusCode,omitempty"`
 }
 
 func (m *UnregisterResponse) Reset()         { *m = UnregisterResponse{} }

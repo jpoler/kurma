@@ -23,9 +23,9 @@ message PodID {
 }
 
 message RegisterResponse {
-	string URL = 1;
+	string Token = 1;
 }
 
 message UnregisterResponse {
-	int32 code = 1;
+	int32 StatusCode = 1;
 }
