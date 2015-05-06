@@ -3,7 +3,6 @@
 package init
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -24,28 +23,51 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-// loadConfigurationFile loads the configuration for the process. It will load
-// the default configuration settings, the disk based configuration, and the
-// command line based parameters. These get merged together to form the runtime
-// values.
+// loadConfigurationFile loads the configuration for the process. It will take
+// the default coded configuration, merge it with the base configuration file
+// within the initrd filesystem, and then check for the OEM configuration to
+// merge in as well.
 func (r *runner) loadConfigurationFile() error {
-	f, err := os.Open(configurationFile)
+	// first, load the config from the local filesystem in the initrd
+	diskConfig, err := getConfigurationFromFile(configurationFile)
 	if err != nil {
-		if os.IsNotExist(err) {
+		return err
+	}
+	if diskConfig != nil {
+		r.config.mergeConfig(diskConfig)
+	}
+
+	// if an OEM config is specified, attempt to find it
+	if r.config.OEMConfig != nil {
+		device := util.ResolveDevice(r.config.OEMConfig.Device)
+		if device == "" {
+			r.log.Warnf("Unable to resolve oem config device %q, skipping", r.config.OEMConfig.Device)
 			return nil
 		}
-		return fmt.Errorf("failed to load configuration: %v", err)
-	}
-	defer f.Close()
+		fstype, _ := util.GetFsType(device)
 
-	var diskConfig *kurmaConfig
-	if err := json.NewDecoder(f).Decode(&diskConfig); err != nil {
-		return fmt.Errorf("failed to parse configuration file: %v", err)
-	}
-	r.config.mergeConfig(diskConfig)
+		// FIXME check fstype against currently supported types
 
-	cmdlineConfig := getConfigFromCmdline()
-	r.config.mergeConfig(cmdlineConfig)
+		// mount the disk
+		diskPath := filepath.Join(mountPath, strings.Replace(device, "/", "_", -1))
+		if err := handleMount(device, diskPath, fstype, ""); err != nil {
+			r.log.Errorf("failed to mount oem config disk %q: %v", device, err)
+			return nil
+		}
+
+		// attempt to load the configuration
+		configPath := filepath.Join(diskPath, r.config.OEMConfig.ConfigPath)
+		r.log.Infof("Loading OEM config: %q", configPath)
+		diskConfig, err := getConfigurationFromFile(configPath)
+		if err != nil {
+			r.log.Errorf("Failed to load oem config: %v", err)
+			return nil
+		}
+		if diskConfig != nil {
+			r.config.mergeConfig(diskConfig)
+		}
+	}
+
 	return nil
 }
 
@@ -382,6 +404,8 @@ func (r *runner) rootReadonly() error {
 	return syscall.Mount("", "/", "", syscall.MS_REMOUNT|syscall.MS_RDONLY, "")
 }
 
+// displayNetwork will print out the current IP configuration of the ethernet
+// devices.
 func (r *runner) displayNetwork() error {
 	interfaces, err := net.Interfaces()
 	if err != nil {
@@ -403,6 +427,8 @@ func (r *runner) displayNetwork() error {
 
 		r.log.Infof("- %s: %s", in.Name, strings.Join(addresses, ", "))
 	}
+
+	r.log.Infof("CONFIG: %#v", r.config)
 	return nil
 }
 
@@ -482,7 +508,7 @@ func (r *runner) startInitContainers() error {
 
 // startUdev handles launching the udev service.
 func (r *runner) startUdev() error {
-	if !r.config.Services.Udev.Enabled {
+	if r.config.Services.Udev.Enabled == nil || !*r.config.Services.Udev.Enabled {
 		r.log.Trace("Skipping udev")
 		return nil
 	}
@@ -524,7 +550,7 @@ func (r *runner) startUdev() error {
 
 // startConsole handles launching the udev service.
 func (r *runner) startNTP() error {
-	if !r.config.Services.NTP.Enabled {
+	if r.config.Services.NTP.Enabled == nil || !*r.config.Services.NTP.Enabled {
 		r.log.Trace("Skipping NTP")
 		return nil
 	}
@@ -533,7 +559,7 @@ func (r *runner) startNTP() error {
 
 	f, err := aciremote.RetrieveImage(r.config.Services.NTP.ACI, true)
 	if err != nil {
-		r.log.Errorf("Failed to retrieve console image: %v", err)
+		r.log.Errorf("Failed to retrieve NTP image: %v", err)
 		return nil
 	}
 	defer f.Close()
@@ -563,7 +589,7 @@ func (r *runner) startNTP() error {
 
 // startConsole handles launching the udev service.
 func (r *runner) startConsole() error {
-	if !r.config.Services.Console.Enabled {
+	if r.config.Services.Console.Enabled == nil || !*r.config.Services.Console.Enabled {
 		r.log.Trace("Skipping console")
 		return nil
 	}
@@ -587,8 +613,10 @@ func (r *runner) startConsole() error {
 	}
 
 	// send in the configuration information
-	manifest.App.Environment.Set(
-		"CONSOLE_PASSWORD", r.config.Services.Console.Password)
+	if r.config.Services.Console.Password != nil {
+		manifest.App.Environment.Set(
+			"CONSOLE_PASSWORD", *r.config.Services.Console.Password)
+	}
 	manifest.App.Environment.Set(
 		"CONSOLE_KEYS", strings.Join(r.config.Services.Console.SSHKeys, "\n"))
 

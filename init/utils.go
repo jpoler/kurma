@@ -175,3 +175,23 @@ func shouldFormatDisk(diskConfig *kurmaDiskConfiguration, currentfstype string) 
 	// if here, then yes
 	return true
 }
+
+// getConfigurationFromFile will attempt to load the provided file and parse it
+// into a *kurmaConfig object. Note that this function will return nil, nil if
+// the specified path was not found.
+func getConfigurationFromFile(file string) (*kurmaConfig, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to load configuration: %v", err)
+	}
+	defer f.Close()
+
+	var config *kurmaConfig
+	if err := json.NewDecoder(f).Decode(&config); err != nil {
+		return nil, fmt.Errorf("failed to parse configuration file: %v", err)
+	}
+	return config, nil
+}

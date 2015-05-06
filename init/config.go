@@ -4,6 +4,7 @@ package init
 
 type kurmaConfig struct {
 	Debug              bool                      `json:"debug,omitempty"`
+	OEMConfig          *OEMConfig                `json:"oem_config"`
 	Datasources        []string                  `json:"datasources,omitempty"`
 	Hostname           string                    `json:"hostname,omitempty"`
 	NetworkConfig      kurmaNetworkConfig        `json:"network_config,omitempty"`
@@ -13,6 +14,11 @@ type kurmaConfig struct {
 	RequiredNamespaces []string                  `json:"required_namespaces,omitempty"`
 	Services           kurmaServices             `json:"services,omitempty"`
 	InitContainers     []string                  `json:"init_containers,omitempty"`
+}
+
+type OEMConfig struct {
+	Device     string `json:"device"`
+	ConfigPath string `json:"config_path"`
 }
 
 type kurmaNetworkConfig struct {
@@ -53,21 +59,21 @@ type kurmaServices struct {
 }
 
 type kurmaGenericService struct {
-	Enabled bool   `json:"enabled,omitempty"`
+	Enabled *bool  `json:"enabled,omitempty"`
 	ACI     string `json:"aci,omitempty"`
 }
 
 type kurmaNTPService struct {
-	Enabled  bool     `json:"enabled,omitempty"`
+	Enabled  *bool    `json:"enabled,omitempty"`
 	ACI      string   `json:"aci,omitempty"`
 	Servers  []string `json:"servers,omitempty"`
 	Interval string   `json:"interval,omitempty"`
 }
 
 type kurmaConsoleService struct {
-	Enabled  bool     `json:"enabled,omitempty"`
+	Enabled  *bool    `json:"enabled,omitempty"`
 	ACI      string   `json:"aci,omitempty"`
-	Password string   `json:"password,omitmepty"`
+	Password *string  `json:"password,omitmepty"`
 	SSHKeys  []string `json:"ssh_keys,omitempty"`
 }
 
@@ -77,6 +83,11 @@ func (cfg *kurmaConfig) mergeConfig(o *kurmaConfig) {
 	}
 
 	// FIXME datasources
+
+	// oem config
+	if o.OEMConfig != nil {
+		cfg.OEMConfig = o.OEMConfig
+	}
 
 	// replace hostname
 	if o.Hostname != "" {
@@ -117,20 +128,34 @@ func (cfg *kurmaConfig) mergeConfig(o *kurmaConfig) {
 	}
 
 	// NTP
-	cfg.Services.NTP.Enabled = o.Services.NTP.Enabled
-	cfg.Services.NTP.ACI = o.Services.NTP.ACI
+	if o.Services.NTP.Enabled != nil {
+		cfg.Services.NTP.Enabled = o.Services.NTP.Enabled
+	}
+	if o.Services.NTP.ACI != "" {
+		cfg.Services.NTP.ACI = o.Services.NTP.ACI
+	}
 	if len(o.Services.NTP.Servers) > 0 {
 		cfg.Services.NTP.Servers = o.Services.NTP.Servers
 	}
 
 	// Udev
-	cfg.Services.Udev.Enabled = o.Services.Udev.Enabled
-	cfg.Services.Udev.ACI = o.Services.Udev.ACI
+	if o.Services.Udev.Enabled != nil {
+		cfg.Services.Udev.Enabled = o.Services.Udev.Enabled
+	}
+	if o.Services.Udev.ACI != "" {
+		cfg.Services.Udev.ACI = o.Services.Udev.ACI
+	}
 
 	// Console
-	cfg.Services.Console.Enabled = o.Services.Console.Enabled
-	cfg.Services.Console.ACI = o.Services.Console.ACI
-	cfg.Services.Console.Password = o.Services.Console.Password
+	if o.Services.Console.Enabled != nil {
+		cfg.Services.Console.Enabled = o.Services.Console.Enabled
+	}
+	if o.Services.Console.ACI != "" {
+		cfg.Services.Console.ACI = o.Services.Console.ACI
+	}
+	if o.Services.Console.Password != nil {
+		cfg.Services.Console.Password = o.Services.Console.Password
+	}
 	if len(o.Services.Console.SSHKeys) > 0 {
 		cfg.Services.Console.SSHKeys = o.Services.Console.SSHKeys
 	}
