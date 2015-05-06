@@ -6,12 +6,12 @@ type kurmaConfig struct {
 	Debug              bool                      `json:"debug,omitempty"`
 	Datasources        []string                  `json:"datasources,omitempty"`
 	Hostname           string                    `json:"hostname,omitempty"`
-	NetworkConfig      *kurmaNetworkConfig       `json:"network_config,omitempty"`
+	NetworkConfig      kurmaNetworkConfig        `json:"network_config,omitempty"`
 	Modules            []string                  `json:"modules,omitmepty"`
 	Disks              []*kurmaDiskConfiguration `json:"disks,omitempty"`
 	ParentCgroupName   string                    `json:"parent_cgroup_name,omitempty"`
 	RequiredNamespaces []string                  `json:"required_namespaces,omitempty"`
-	Services           *kurmaServices            `json:"services,omitempty"`
+	Services           kurmaServices             `json:"services,omitempty"`
 	InitContainers     []string                  `json:"init_containers,omitempty"`
 }
 
@@ -47,9 +47,9 @@ const (
 )
 
 type kurmaServices struct {
-	NTP     *kurmaNTPService     `json:"ntp,omitempty"`
-	Udev    *kurmaGenericService `json:"udev,omitempty"`
-	Console *kurmaConsoleService `json:"console,omitempty"`
+	NTP     kurmaNTPService     `json:"ntp,omitempty"`
+	Udev    kurmaGenericService `json:"udev,omitempty"`
+	Console kurmaConsoleService `json:"console,omitempty"`
 }
 
 type kurmaGenericService struct {
@@ -83,19 +83,17 @@ func (cfg *kurmaConfig) mergeConfig(o *kurmaConfig) {
 		cfg.Hostname = o.Hostname
 	}
 
-	if o.NetworkConfig != nil {
-		// replace dns
-		if len(o.NetworkConfig.DNS) > 0 {
-			cfg.NetworkConfig.DNS = o.NetworkConfig.DNS
-		}
-		// replace gateway
-		if o.NetworkConfig.Gateway != "" {
-			cfg.NetworkConfig.Gateway = o.NetworkConfig.Gateway
-		}
-		// replace interfaces
-		if len(o.NetworkConfig.Interfaces) > 0 {
-			cfg.NetworkConfig.Interfaces = o.NetworkConfig.Interfaces
-		}
+	// replace dns
+	if len(o.NetworkConfig.DNS) > 0 {
+		cfg.NetworkConfig.DNS = o.NetworkConfig.DNS
+	}
+	// replace gateway
+	if o.NetworkConfig.Gateway != "" {
+		cfg.NetworkConfig.Gateway = o.NetworkConfig.Gateway
+	}
+	// replace interfaces
+	if len(o.NetworkConfig.Interfaces) > 0 {
+		cfg.NetworkConfig.Interfaces = o.NetworkConfig.Interfaces
 	}
 
 	// append modules
@@ -118,30 +116,22 @@ func (cfg *kurmaConfig) mergeConfig(o *kurmaConfig) {
 		cfg.InitContainers = append(cfg.InitContainers, o.InitContainers...)
 	}
 
-	if o.Services != nil {
-		// NTP
-		if o.Services.NTP != nil {
-			cfg.Services.NTP.Enabled = o.Services.NTP.Enabled
-			cfg.Services.NTP.ACI = o.Services.NTP.ACI
-			if len(o.Services.NTP.Servers) > 0 {
-				cfg.Services.NTP.Servers = o.Services.NTP.Servers
-			}
-		}
+	// NTP
+	cfg.Services.NTP.Enabled = o.Services.NTP.Enabled
+	cfg.Services.NTP.ACI = o.Services.NTP.ACI
+	if len(o.Services.NTP.Servers) > 0 {
+		cfg.Services.NTP.Servers = o.Services.NTP.Servers
+	}
 
-		// Udev
-		if o.Services.Udev != nil {
-			cfg.Services.Udev.Enabled = o.Services.Udev.Enabled
-			cfg.Services.Udev.ACI = o.Services.Udev.ACI
-		}
+	// Udev
+	cfg.Services.Udev.Enabled = o.Services.Udev.Enabled
+	cfg.Services.Udev.ACI = o.Services.Udev.ACI
 
-		// Console
-		if o.Services.Console != nil {
-			cfg.Services.Console.Enabled = o.Services.Console.Enabled
-			cfg.Services.Console.ACI = o.Services.Console.ACI
-			cfg.Services.Console.Password = o.Services.Console.Password
-			if len(o.Services.Console.SSHKeys) > 0 {
-				cfg.Services.Console.SSHKeys = o.Services.Console.SSHKeys
-			}
-		}
+	// Console
+	cfg.Services.Console.Enabled = o.Services.Console.Enabled
+	cfg.Services.Console.ACI = o.Services.Console.ACI
+	cfg.Services.Console.Password = o.Services.Console.Password
+	if len(o.Services.Console.SSHKeys) > 0 {
+		cfg.Services.Console.SSHKeys = o.Services.Console.SSHKeys
 	}
 }

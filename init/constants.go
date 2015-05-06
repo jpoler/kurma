@@ -40,38 +40,16 @@ const (
 )
 
 // defaultConfiguration returns the default codified configuration that is
-// applied on boot.
+// applied on boot. This primarily ensures that at a bare minimum, a local
+// loopback device will be configured for the network.
 func defaultConfiguration() *kurmaConfig {
 	return &kurmaConfig{
-		Hostname:           "kurmaos",
-		ParentCgroupName:   "kurma",
-		RequiredNamespaces: []string{"ipc", "mount", "pid", "uts"},
-		NetworkConfig: &kurmaNetworkConfig{
+		NetworkConfig: kurmaNetworkConfig{
 			Interfaces: []*kurmaNetworkInterface{
 				&kurmaNetworkInterface{
 					Device:  "lo",
 					Address: "127.0.0.1/8",
 				},
-			},
-		},
-		Services: &kurmaServices{
-			NTP: &kurmaNTPService{
-				Enabled: true,
-				ACI:     "file:///ntp.aci",
-				Servers: []string{
-					"0.pool.ntp.org",
-					"1.pool.ntp.org",
-					"2.pool.ntp.org",
-					"3.pool.ntp.org",
-				},
-			},
-			Udev: &kurmaGenericService{
-				Enabled: false,
-			},
-			Console: &kurmaConsoleService{
-				Enabled:  true,
-				ACI:      "file:///console.aci",
-				Password: "kurma",
 			},
 		},
 	}

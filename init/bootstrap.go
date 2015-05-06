@@ -284,11 +284,6 @@ func (r *runner) configureHostname() error {
 // interface configuration, and configuring it. It will also handle configuring
 // the default gateway after all interfaces are configured.
 func (r *runner) configureNetwork() error {
-	if r.config.NetworkConfig == nil {
-		r.log.Warn("No network configuration given, skipping")
-		return nil
-	}
-
 	r.log.Info("Configuring network...")
 
 	links, err := netlink.LinkList()
