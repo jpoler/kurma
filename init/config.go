@@ -40,6 +40,7 @@ type kurmaDiskConfiguration struct {
 	FsType string           `json:"fstype,omitempty"`
 	Format *bool            `json:"format,omitempty"`
 	Usage  []kurmaPathUsage `json:"usage"`
+	Resize bool             `json:"resize"`
 }
 
 type kurmaPathUsage string

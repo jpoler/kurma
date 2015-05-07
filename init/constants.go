@@ -7,13 +7,13 @@ var (
 	// host system to create and manage containers. These functions focus
 	// primarily on runtime actions that must be done each time on boot.
 	setupFunctions = []func(*runner) error{
+		(*runner).startSignalHandling,
 		(*runner).createSystemMounts,
 		(*runner).loadConfigurationFile,
 		(*runner).configureLogging,
 		(*runner).configureEnvironment,
 		(*runner).mountCgroups,
 		(*runner).loadModules,
-		(*runner).startSignalHandling,
 		(*runner).launchManager,
 		(*runner).createDirectories,
 		(*runner).startUdev,

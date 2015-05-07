@@ -106,8 +106,13 @@ func (r *runner) handleSIGCHLD(ch chan os.Signal) {
 			// loop and wait for a new signal.
 			pid, err := syscall.Wait4(-1, nil, syscall.WNOHANG, nil)
 			if err != nil {
-				r.log.Errorf("Error in wait4: %v", err)
-				break
+				switch err.Error() {
+				case "no child processes":
+					// ignore logging messages about no more children to wait for
+				default:
+					r.log.Warnf("Error in wait4: %v", err)
+					break
+				}
 			}
 			if pid <= 0 {
 				break

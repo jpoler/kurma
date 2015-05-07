@@ -242,6 +242,14 @@ func (r *runner) mountDisks() error {
 			fstype = disk.FsType
 		}
 
+		// resize it, but only if ext4 for now
+		if strings.HasPrefix(fstype, "ext") && disk.Resize {
+			output, err := exec.Command("/bin/resizefs", device).CombinedOutput()
+			if err != nil {
+				r.log.Warnf("failed to resize disk %q: %v - %q", device, err, string(output))
+			}
+		}
+
 		// mount it
 		diskPath := filepath.Join(mountPath, strings.Replace(device, "/", "_", -1))
 		if err := handleMount(device, diskPath, fstype, ""); err != nil {
