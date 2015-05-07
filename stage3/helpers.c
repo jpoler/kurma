@@ -222,10 +222,15 @@ int pivot_root(char *root, bool privileged) {
 }
 
 int uidforuser2(char *user) {
+	// First, look up the /etc/passwd entry.
+	struct passwd *pwd;
+	pwd = getpwnam(user);
+	if (pwd != NULL)
+		return pwd->pw_uid;
+
+	// Second, attempt to convert to integer first
 	char *endptr;
 	long val;
-
-	// attempt to convert to integer first
 	errno = 0;
 	val = strtol(user, &endptr, 10);
 
@@ -234,21 +239,19 @@ int uidforuser2(char *user) {
 		return (int) val;
 	}
 
-	// look up the passwd entry
-	struct passwd *pwd;
-	pwd = getpwnam(user);
-	if (pwd != NULL)
-		return pwd->pw_uid;
-
-	// FIXME should it throw an error instead of silently using root?
-	return 0;
+	return -1;
 }
 
 int gidforgroup2(char *group) {
+	// First, look up the /etc/group entry
+	struct group *grp;
+	grp = getgrnam(group);
+	if (grp != NULL)
+		return grp->gr_gid;
+
+	// Second, attempt to convert to integer first
 	char *endptr;
 	long val;
-
-	// attempt to convert to integer first
 	errno = 0;
 	val = strtol(group, &endptr, 10);
 
@@ -257,14 +260,7 @@ int gidforgroup2(char *group) {
 		return (int) val;
 	}
 
-	// look up the passwd entry
-	struct group *grp;
-	grp = getgrnam(group);
-	if (grp != NULL)
-		return grp->gr_gid;
-
-	// FIXME should it throw an error instead of silently using root?
-	return 0;
+	return -1;
 }
 
 #endif

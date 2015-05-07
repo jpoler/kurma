@@ -169,11 +169,15 @@ static void setup_container(clone_destination_data *args, pid_t uidmap_child) {
 		// --------------------------------------------------------------------
 		if (args->group != NULL) {
 			int gid = gidforgroup(args->group);
+			if (gid < 0)
+				error(1, 0, "Failed to look up GID for process");
 			if (gid != 0 && setgid(gid) < 0)
 			  error(1, errno, "Failed to get switch to the specified group");
 		}
 		if (args->user != NULL) {
 			int uid = uidforuser(args->user);
+			if (uid < 0)
+				error(1, 0, "Failed to look up UID for process");
 			if (uid != 0 && setuid(uid) < 0)
 			  error(1, errno, "Failed to get switch to the specified user");
 		}

@@ -87,7 +87,17 @@ void start_request(struct request *r)
 
 	// Compute the uid and gid
 	uid = (uid_t)uidforuser2(r->data[5][0]);
+	if (uid < 0) {
+		ERROR("[%d] Error in locating UID\n", r->fd);
+		initd_response_internal_error(r);
+		return;
+	}
 	gid = (gid_t)gidforgroup2(r->data[5][1]);
+	if (gid < 0) {
+		ERROR("[%d] Error in locating GID\n", r->fd);
+		initd_response_internal_error(r);
+		return;
+	}
 
 	fflush(NULL);
 	pid = fork();
