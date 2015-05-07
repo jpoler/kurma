@@ -427,8 +427,6 @@ func (r *runner) displayNetwork() error {
 
 		r.log.Infof("- %s: %s", in.Name, strings.Join(addresses, ", "))
 	}
-
-	r.log.Infof("CONFIG: %#v", r.config)
 	return nil
 }
 
